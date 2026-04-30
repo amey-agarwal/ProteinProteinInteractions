@@ -86,20 +86,18 @@ def protein_wise_split(df):
 
 
 def build_features(df, seq_emb, net_emb):
-    features, labels = [], []
-    for _, row in df.iterrows():
-        p1, p2 = row["protein1"], row["protein2"]
-        if p1 not in net_emb or p2 not in net_emb or p1 not in seq_emb or p2 not in seq_emb:
-            continue
-        n1, n2 = net_emb[p1], net_emb[p2]
-        s1, s2 = seq_emb[p1], seq_emb[p2]
-        pair = np.concatenate([
-            np.abs(n1 - n2), n1 * n2,
-            np.abs(s1 - s2), s1 * s2,
-        ])
-        features.append(pair)
-        labels.append(row["label"])
-    return np.array(features, dtype=np.float32), np.array(labels, dtype=np.float32)
+    valid = df[
+        df["protein1"].isin(net_emb) & df["protein2"].isin(net_emb) &
+        df["protein1"].isin(seq_emb) & df["protein2"].isin(seq_emb)
+    ]
+    p1s, p2s = valid["protein1"].values, valid["protein2"].values
+    n1 = np.array([net_emb[p] for p in p1s], dtype=np.float32)
+    n2 = np.array([net_emb[p] for p in p2s], dtype=np.float32)
+    s1 = np.array([seq_emb[p] for p in p1s], dtype=np.float32)
+    s2 = np.array([seq_emb[p] for p in p2s], dtype=np.float32)
+    X = np.concatenate([np.abs(n1 - n2), n1 * n2, np.abs(s1 - s2), s1 * s2], axis=1)
+    y = valid["label"].values.astype(np.float32)
+    return X, y
 
 
 def normalize_features(X_train, X_val, X_test):
