@@ -1,2 +1,6 @@
 .DS_Store
 pyvenv/
+.venv/
+__pycache__/
+*.pyc
+data/processed/*.log

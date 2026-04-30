@@ -8,9 +8,11 @@ from sklearn.metrics import (
     average_precision_score,
     classification_report,
     f1_score,
+    precision_recall_curve,
     precision_score,
     recall_score,
     roc_auc_score,
+    roc_curve,
 )
 from sklearn.neural_network import MLPClassifier
 from sklearn.pipeline import Pipeline
@@ -23,12 +25,13 @@ SEQUENCE_EMBEDDINGS_PATH = Path("data/embeddings/9606.protein.sequence.embedding
 NETWORK_EMBEDDINGS_PATH = Path("data/embeddings/9606.protein.network.embeddings.v12.0.h5")
 
 RESULTS_OUTPUT = Path("data/processed/ablation_results.csv")
+CURVES_DIR = Path("data/processed/curves")
 
 RANDOM_SEED = 42
 TEST_PROTEIN_FRACTION = 0.2
 
-MAX_TRAIN_ROWS = 50_000
-MAX_TEST_ROWS = 10_000
+MAX_TRAIN_ROWS = None
+MAX_TEST_ROWS = None
 
 EVIDENCE_FEATURES = [
     "neighborhood",
@@ -53,6 +56,15 @@ def load_embeddings(path: Path) -> dict[str, np.ndarray]:
         embeddings = f["embeddings"][:].astype(np.float32)
 
     return dict(zip(proteins, embeddings))
+
+
+def build_embedding_matrix(
+    embeddings: dict[str, np.ndarray],
+) -> tuple[np.ndarray, dict[str, int]]:
+    proteins = list(embeddings.keys())
+    idx_map = {p: i for i, p in enumerate(proteins)}
+    matrix = np.stack([embeddings[p] for p in proteins]).astype(np.float32)
+    return matrix, idx_map
 
 
 def protein_wise_split(
@@ -85,8 +97,8 @@ def protein_wise_split(
     return train_df, test_df
 
 
-def sample_dataframe(df: pd.DataFrame, max_rows: int, random_seed: int) -> pd.DataFrame:
-    if len(df) <= max_rows:
+def sample_dataframe(df: pd.DataFrame, max_rows: int | None, random_seed: int) -> pd.DataFrame:
+    if max_rows is None or len(df) <= max_rows:
         return df.reset_index(drop=True)
 
     return df.sample(n=max_rows, random_state=random_seed).reset_index(drop=True)
@@ -94,58 +106,57 @@ def sample_dataframe(df: pd.DataFrame, max_rows: int, random_seed: int) -> pd.Da
 
 def build_pair_features(
     df: pd.DataFrame,
-    sequence_embeddings: dict[str, np.ndarray],
-    network_embeddings: dict[str, np.ndarray],
+    sequence_lookup: tuple[np.ndarray, dict[str, int]],
+    network_lookup: tuple[np.ndarray, dict[str, int]],
     feature_mode: str,
 ) -> tuple[np.ndarray, np.ndarray]:
-    features = []
-    labels = []
-    missing_count = 0
+    seq_matrix, seq_idx = sequence_lookup
+    net_matrix, net_idx = network_lookup
 
-    for _, row in df.iterrows():
-        p1 = row["protein1"]
-        p2 = row["protein2"]
+    p1 = df["protein1"].to_numpy()
+    p2 = df["protein2"].to_numpy()
 
-        if feature_mode in {"sequence", "network", "combined", "sequence_network"}:
-            if (
-                p1 not in sequence_embeddings
-                or p2 not in sequence_embeddings
-                or p1 not in network_embeddings
-                or p2 not in network_embeddings
-            ):
-                missing_count += 1
-                continue
+    valid_mask = np.ones(len(df), dtype=bool)
 
-        parts = []
+    if feature_mode in {"sequence", "combined", "sequence_network"}:
+        valid_mask &= np.fromiter((p in seq_idx for p in p1), dtype=bool, count=len(df))
+        valid_mask &= np.fromiter((p in seq_idx for p in p2), dtype=bool, count=len(df))
 
-        if feature_mode in {"evidence", "combined"}:
-            evidence = row[EVIDENCE_FEATURES].to_numpy(dtype=np.float32)
-            parts.append(evidence)
+    if feature_mode in {"network", "combined", "sequence_network"}:
+        valid_mask &= np.fromiter((p in net_idx for p in p1), dtype=bool, count=len(df))
+        valid_mask &= np.fromiter((p in net_idx for p in p2), dtype=bool, count=len(df))
 
-        if feature_mode in {"sequence", "combined", "sequence_network"}:
-            p1_seq = sequence_embeddings[p1]
-            p2_seq = sequence_embeddings[p2]
+    missing_count = int((~valid_mask).sum())
+    df_valid = df.loc[valid_mask].reset_index(drop=True)
+    p1_valid = df_valid["protein1"].to_numpy()
+    p2_valid = df_valid["protein2"].to_numpy()
 
-            parts.append(np.abs(p1_seq - p2_seq))
-            parts.append(p1_seq * p2_seq)
+    parts: list[np.ndarray] = []
 
-        if feature_mode in {"network", "combined", "sequence_network"}:
-            p1_net = network_embeddings[p1]
-            p2_net = network_embeddings[p2]
+    if feature_mode in {"evidence", "combined"}:
+        parts.append(df_valid[EVIDENCE_FEATURES].to_numpy(dtype=np.float32))
 
-            parts.append(np.abs(p1_net - p2_net))
-            parts.append(p1_net * p2_net)
+    if feature_mode in {"sequence", "combined", "sequence_network"}:
+        p1_ix = np.fromiter((seq_idx[p] for p in p1_valid), dtype=np.int64, count=len(p1_valid))
+        p2_ix = np.fromiter((seq_idx[p] for p in p2_valid), dtype=np.int64, count=len(p2_valid))
+        p1_seq = seq_matrix[p1_ix]
+        p2_seq = seq_matrix[p2_ix]
+        parts.append(np.abs(p1_seq - p2_seq))
+        parts.append(p1_seq * p2_seq)
 
-        pair_features = np.concatenate(parts)
+    if feature_mode in {"network", "combined", "sequence_network"}:
+        p1_ix = np.fromiter((net_idx[p] for p in p1_valid), dtype=np.int64, count=len(p1_valid))
+        p2_ix = np.fromiter((net_idx[p] for p in p2_valid), dtype=np.int64, count=len(p2_valid))
+        p1_net = net_matrix[p1_ix]
+        p2_net = net_matrix[p2_ix]
+        parts.append(np.abs(p1_net - p2_net))
+        parts.append(p1_net * p2_net)
 
-        features.append(pair_features)
-        labels.append(row["label"])
-
-    if not features:
+    if not parts:
         raise ValueError(f"No valid rows for feature_mode={feature_mode}")
 
-    X = np.asarray(features, dtype=np.float32)
-    y = np.asarray(labels, dtype=np.int64)
+    X = np.concatenate(parts, axis=1).astype(np.float32)
+    y = df_valid["label"].to_numpy(dtype=np.int64)
 
     print(f"{feature_mode} feature matrix shape: {X.shape}")
     print(f"{feature_mode} missing/skipped pairs: {missing_count:,}")
@@ -208,14 +219,30 @@ def evaluate_model(
     print("\nClassification Report:")
     print(classification_report(y_test, y_pred, digits=4, zero_division=0))
 
+    fpr, tpr, _ = roc_curve(y_test, y_prob)
+    prec_curve, rec_curve, _ = precision_recall_curve(y_test, y_prob)
+
+    CURVES_DIR.mkdir(parents=True, exist_ok=True)
+    np.savez(
+        CURVES_DIR / f"{model_name}.npz",
+        fpr=fpr,
+        tpr=tpr,
+        precision=prec_curve,
+        recall=rec_curve,
+        roc_auc=results["roc_auc"],
+        pr_auc=results["pr_auc"],
+        y_test=y_test,
+        y_prob=y_prob,
+    )
+
     return results
 
 
 def run_experiment(
     train_df: pd.DataFrame,
     test_df: pd.DataFrame,
-    sequence_embeddings: dict[str, np.ndarray],
-    network_embeddings: dict[str, np.ndarray],
+    sequence_lookup: tuple[np.ndarray, dict[str, int]],
+    network_lookup: tuple[np.ndarray, dict[str, int]],
     feature_mode: str,
 ) -> dict:
     print("\n" + "=" * 70)
@@ -225,16 +252,16 @@ def run_experiment(
     print("\nBuilding training features...")
     X_train, y_train = build_pair_features(
         train_df,
-        sequence_embeddings,
-        network_embeddings,
+        sequence_lookup,
+        network_lookup,
         feature_mode,
     )
 
     print("\nBuilding testing features...")
     X_test, y_test = build_pair_features(
         test_df,
-        sequence_embeddings,
-        network_embeddings,
+        sequence_lookup,
+        network_lookup,
         feature_mode,
     )
 
@@ -252,6 +279,9 @@ def main():
     sequence_embeddings = load_embeddings(SEQUENCE_EMBEDDINGS_PATH)
     network_embeddings = load_embeddings(NETWORK_EMBEDDINGS_PATH)
 
+    sequence_lookup = build_embedding_matrix(sequence_embeddings)
+    network_lookup = build_embedding_matrix(network_embeddings)
+
     train_df, test_df = protein_wise_split(
         df,
         test_fraction=TEST_PROTEIN_FRACTION,
@@ -265,11 +295,9 @@ def main():
     print(f"Test rows after sampling: {len(test_df):,}")
 
     feature_modes = [
-        # "evidence",
         "sequence",
         "network",
         "sequence_network",
-        # "combined",
     ]
 
     all_results = []
@@ -278,8 +306,8 @@ def main():
         results = run_experiment(
             train_df=train_df,
             test_df=test_df,
-            sequence_embeddings=sequence_embeddings,
-            network_embeddings=network_embeddings,
+            sequence_lookup=sequence_lookup,
+            network_lookup=network_lookup,
             feature_mode=mode,
         )
 
