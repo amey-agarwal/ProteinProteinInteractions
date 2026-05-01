@@ -26,6 +26,7 @@ def inspect_h5(path: Path):
         if hasattr(obj, "shape"):
             print(f"Shape: {obj.shape}")
             print(f"Dtype: {obj.dtype}")
+            #print(vars(type(obj)))
         else:
             print("This key is a group, not a dataset.")
             print("Subkeys:")
