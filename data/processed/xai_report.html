@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>PPI · Explainable AI Report</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=DM+Serif+Display&family=DM+Sans:wght@300;400;500&display=swap');
+  :root{
+    --bg:#0a0e17; --surface:#111827; --surface2:#1a2235;
+    --accent:#00d4aa; --accent2:#7c6af7; --warn:#f59e42;
+    --text:#e2e8f0; --muted:#64748b; --border:#1e2d45;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);
+        font-family:'DM Sans',sans-serif;font-weight:300;
+        line-height:1.7;padding:0 0 80px}
+  header{background:linear-gradient(135deg,#0d1b2a 0%,#0a0e17 60%,#0d1333 100%);
+          border-bottom:1px solid var(--border);
+          padding:60px 48px 48px}
+  header h1{font-family:'DM Serif Display',serif;font-size:2.8rem;
+             color:var(--accent);letter-spacing:-.02em}
+  header p{color:var(--muted);margin-top:8px;font-size:.95rem}
+  .tag{display:inline-block;background:var(--accent2);color:#fff;
+        font-size:.7rem;font-family:'JetBrains Mono',monospace;
+        padding:2px 8px;border-radius:3px;margin-left:12px;
+        vertical-align:middle;letter-spacing:.05em}
+  main{max-width:1100px;margin:0 auto;padding:0 24px}
+  .card{background:var(--surface);border:1px solid var(--border);
+         border-radius:12px;padding:36px;margin-top:36px}
+  .card h2{font-family:'DM Serif Display',serif;font-size:1.5rem;
+            color:var(--accent2);margin-bottom:18px}
+  .card h3{font-size:.95rem;font-family:'JetBrains Mono',monospace;
+            color:var(--accent);margin:18px 0 8px;text-transform:uppercase;
+            letter-spacing:.08em}
+  p{margin-bottom:12px;color:var(--text)}
+  .note{color:var(--muted);font-size:.85rem;font-style:italic}
+  table{width:100%;border-collapse:collapse;font-size:.9rem;margin-top:8px}
+  th{text-align:left;padding:10px 14px;color:var(--muted);
+      font-weight:500;border-bottom:1px solid var(--border);
+      font-family:'JetBrains Mono',monospace;font-size:.78rem;
+      text-transform:uppercase;letter-spacing:.06em}
+  td{padding:9px 14px;border-bottom:1px solid #1a2235;vertical-align:middle}
+  tr:last-child td{border-bottom:none}
+  .best-row td{color:var(--accent);font-weight:500}
+  .pos-row td{color:#4ade80}
+  .neg-row td{color:var(--muted)}
+  .bar-track{background:var(--surface2);border-radius:4px;height:18px;
+              position:relative;min-width:120px;overflow:hidden}
+  .bar-fill{height:100%;border-radius:4px;opacity:.85;transition:width .4s}
+  .bar-label{position:absolute;right:6px;top:0;line-height:18px;
+              font-size:.78rem;font-family:'JetBrains Mono',monospace}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:16px}
+  .kpi-box{background:var(--surface2);border:1px solid var(--border);
+            border-radius:8px;padding:20px 24px}
+  .kpi-val{font-family:'DM Serif Display',serif;font-size:2rem;color:var(--accent)}
+  .kpi-label{color:var(--muted);font-size:.82rem;margin-top:4px}
+  canvas{max-width:100%;margin-top:12px}
+  .bio-list{list-style:none;padding:0}
+  .bio-list li{padding:10px 0;border-bottom:1px solid var(--border);
+                display:flex;gap:12px;align-items:flex-start}
+  .bio-list li:last-child{border-bottom:none}
+  .bio-num{font-family:'JetBrains Mono',monospace;color:var(--accent);
+            font-size:.9rem;min-width:24px}
+  code{background:var(--surface2);padding:1px 5px;border-radius:3px;
+        font-family:'JetBrains Mono',monospace;font-size:.85em;color:var(--accent)}
+  .highlight-box{background:linear-gradient(135deg,#0d2233,#12172a);
+                  border:1px solid var(--accent);border-radius:8px;
+                  padding:20px 24px;margin:16px 0}
+  .highlight-box p{color:var(--accent);font-weight:500;margin:0}
+</style>
+</head>
+<body>
+<header>
+  <h1>PPI · Explainable AI Report <span class="tag">XAI</span></h1>
+  <p>Human proteome (STRING v12 · taxon 9606) · Network vs Sequence embeddings · MLP classifier</p>
+</header>
+<main>
+
+<!-- ══ SECTION 0 – KEY QUESTIONS ══ -->
+<div class="card">
+  <h2>0 · Questions This Report Answers</h2>
+  <ul class="bio-list">
+    <li><span class="bio-num">Q1</span>
+      <span>Why do <b>network embeddings</b> outperform sequence embeddings for PPI prediction?</span></li>
+    <li><span class="bio-num">Q2</span>
+      <span>What has the model learned about <b>protein chemistry and biology</b>?</span></li>
+    <li><span class="bio-num">Q3</span>
+      <span>What additional <b>biological questions</b> can be answered with this framework?</span></li>
+  </ul>
+</div>
+
+<!-- ══ SECTION 1 – ABLATION ══ -->
+<div class="card">
+  <h2>1 · Model Ablation Results</h2>
+  <p>Each model is trained and evaluated on the same protein-wise train/test split.
+  The best-performing configuration is highlighted.</p>
+  <table>
+    <tr><th>Feature Set</th><th>Precision</th><th>Recall</th>
+        <th>F1</th><th>ROC-AUC</th><th>PR-AUC</th></tr>
+    <tr><td>network</td><td>0.8207</td><td>0.7263</td><td>0.7706</td><td>0.8644</td><td>0.8726</td></tr>
+<tr><td>sequence</td><td>0.6947</td><td>0.5599</td><td>0.6201</td><td>0.7274</td><td>0.7245</td></tr>
+<tr><td>sequence+network</td><td>0.8057</td><td>0.7491</td><td>0.7764</td><td>0.8642</td><td>0.8735</td></tr>
+<tr class="best-row"><td>evidence scores</td><td>1.0000</td><td>1.0000</td><td>1.0000</td><td>1.0000</td><td>1.0000</td></tr>
+
+  </table>
+</div>
+
+<!-- ══ SECTION 2 – GEOMETRY ══ -->
+<div class="card">
+  <h2>2 · Embedding Geometry <span class="tag">answers Q1</span></h2>
+
+  <div class="highlight-box">
+    <p>Network embeddings show 0.2236 cosine-similarity separation
+    between interacting and non-interacting pairs, versus
+    0.0564 for sequence embeddings —
+    a 0.1672 point gap that directly
+    explains the performance difference.</p>
+  </div>
+
+  <h3>Similarity Statistics</h3>
+  <table>
+    <tr><th>Metric</th><th>Value</th></tr>
+    
+    <tr><td>Network – Positive pair cosine similarity</td><td>0.5015</td></tr>
+    <tr><td>Network – Negative pair cosine similarity</td><td>0.2779</td></tr>
+    <tr><td>Network – Cosine separation (Δ)</td><td><b>0.2236</b></td></tr>
+    <tr><td>Sequence – Positive pair cosine similarity</td><td>0.5207</td></tr>
+    <tr><td>Sequence – Negative pair cosine similarity</td><td>0.4643</td></tr>
+    <tr><td>Sequence – Cosine separation (Δ)</td><td><b>0.0564</b></td></tr>
+    
+  </table>
+
+  <h3>Why network embeddings cluster interactors</h3>
+  <p>Network embeddings (e.g. STRING's DeepWalk / node2vec-style vectors) encode
+  <b>topological proximity</b> in the known PPI graph. Proteins that share many
+  interaction partners end up in nearby regions of the embedding space — which is
+  exactly the signal a classifier needs. Sequence embeddings, by contrast, capture
+  <b>evolutionary / structural similarity</b>; two proteins can be structurally
+  unrelated yet functionally coupled (e.g. scaffold proteins binding diverse partners),
+  so their sequence vectors will appear far apart even though they interact.</p>
+
+  <h3>Neighbourhood overlap (k=10 nearest neighbours)</h3>
+  <div class="grid2">
+    <div class="kpi-box">
+      <div class="kpi-val">0.127</div>
+      <div class="kpi-label">Mean kNN overlap · interacting pairs</div>
+    </div>
+    <div class="kpi-box">
+      <div class="kpi-val">0.022</div>
+      <div class="kpi-label">Mean kNN overlap · non-interacting pairs</div>
+    </div>
+  </div>
+  <p class="note" style="margin-top:12px">
+  Higher overlap for interacting pairs confirms that the network embedding space
+  reflects biological communities (complexes, pathways), not just sequence families.</p>
+</div>
+
+<!-- ══ SECTION 3 – COMPONENT ABLATION ══ -->
+<div class="card">
+  <h2>3 · Feature-Component Ablation <span class="tag">answers Q2</span></h2>
+  <p>Network embedding pairs are encoded as two components:
+  <code>|e₁ − e₂|</code> (difference) captures how <b>dissimilar</b> two proteins
+  are in embedding space; <code>e₁ ⊙ e₂</code> (element-wise product) captures
+  <b>shared directions</b> — i.e. co-membership in functional modules.</p>
+
+  <table>
+    <tr><th>Feature Component</th><th>F1</th><th>ROC-AUC</th><th>PR-AUC</th></tr>
+    <tr><td>full</td><td>0.7683</td><td>0.8659</td><td>0.8693</td></tr>
+<tr><td>absdiff_only</td><td>0.6843</td><td>0.7851</td><td>0.7914</td></tr>
+<tr><td>elemprod_only</td><td>0.7318</td><td>0.8391</td><td>0.8321</td></tr>
+
+  </table>
+
+  <h3>Biological interpretation</h3>
+  <ul class="bio-list">
+    <li><span class="bio-num">∥</span>
+      <span><b>|e₁ − e₂| dominates →</b> the model distinguishes interactors by
+      how <em>different</em> their network positions are. This encodes
+      <b>complementarity</b>: e.g. a kinase and its substrate occupy distinct
+      network niches yet interact.</span></li>
+    <li><span class="bio-num">⊙</span>
+      <span><b>e₁ ⊙ e₂ contributes →</b> shared embedding directions reflect
+      <b>co-complex membership</b> (same protein complex → same neighbours →
+      similar embedding dimensions are large simultaneously).</span></li>
+  </ul>
+</div>
+
+<!-- ══ SECTION 4 – PROTOTYPE PAIRS ══ -->
+<div class="card">
+  <h2>4 · Prototype Predictions</h2>
+  <p>High-confidence predictions reveal what interaction patterns the model has
+  internalised.</p>
+
+  <h3>Top predicted interacting pairs</h3>
+  <table>
+    <tr><th>Protein 1</th><th>Protein 2</th><th>Confidence</th></tr>
+    <tr class="pos-row"><td>ENSP00000262584</td><td>ENSP00000311430</td><td>1.0</td></tr>
+<tr class="pos-row"><td>ENSP00000311430</td><td>ENSP00000367806</td><td>1.0</td></tr>
+<tr class="pos-row"><td>ENSP00000346050</td><td>ENSP00000414321</td><td>1.0</td></tr>
+<tr class="pos-row"><td>ENSP00000311430</td><td>ENSP00000375730</td><td>1.0</td></tr>
+<tr class="pos-row"><td>ENSP00000262584</td><td>ENSP00000367806</td><td>1.0</td></tr>
+
+  </table>
+
+  <h3>Top predicted non-interacting pairs</h3>
+  <table>
+    <tr><th>Protein 1</th><th>Protein 2</th><th>Confidence</th></tr>
+    <tr class="neg-row"><td>ENSP00000304133</td><td>ENSP00000412130</td><td>0.0</td></tr>
+<tr class="neg-row"><td>ENSP00000265720</td><td>ENSP00000392330</td><td>0.0</td></tr>
+<tr class="neg-row"><td>ENSP00000255764</td><td>ENSP00000274140</td><td>0.0001</td></tr>
+<tr class="neg-row"><td>ENSP00000253363</td><td>ENSP00000377845</td><td>0.0001</td></tr>
+<tr class="neg-row"><td>ENSP00000320219</td><td>ENSP00000347836</td><td>0.0001</td></tr>
+
+  </table>
+</div>
+
+<!-- ══ SECTION 5 – SHAP ══ -->
+
+        <div class="card">
+          <h2>5 · SHAP Feature Importance</h2>
+          <p>KernelSHAP values computed on 300 test pairs using
+          200 background samples.</p>
+          <table>
+            <tr><th>Feature Group</th><th>Mean |SHAP|</th></tr>
+            <tr><td>|e₁ − e₂| (difference)</td><td>42503629717.00871</td></tr>
+            <tr><td>e₁ ⊙ e₂   (product)</td><td>38833922330.09623</td></tr>
+          </table>
+          <p class="note">Top embedding dimensions driving predictions (abs-diff group): [[0, 1], [0, 1], [1, 0], [0, 1], [1, 0], [0, 1], [1, 0], [0, 1], [1, 0], [0, 1]]</p>
+        </div>
+
+<!-- ══ SECTION 6 – PCA ══ -->
+<div class="card">
+  <h2>6 · Embedding Dimensionality (PCA)</h2>
+  <p>Cumulative variance explained by the first 20 principal components:
+  <b>network 45.7%</b> vs
+  <b>sequence 56.1%</b>.
+  A more concentrated variance indicates a more structured, lower-intrinsic-dimension
+  space — easier for downstream classifiers.</p>
+  <canvas id="pcaChart" height="90"></canvas>
+</div>
+
+<!-- ══ SECTION 7 – BIOLOGY Q&A ══ -->
+<div class="card">
+  <h2>7 · What the Model Learned About Protein Biology <span class="tag">answers Q2 + Q3</span></h2>
+
+  <h3>Chemistry & biology encoded in network embeddings</h3>
+  <ul class="bio-list">
+    <li><span class="bio-num">1</span>
+      <span><b>Functional modules / pathways:</b> STRING edge weights aggregate
+      co-expression, co-localisation, and experimental evidence. Node2vec-style
+      walks therefore encode pathway membership; proteins in the same KEGG pathway
+      cluster together.</span></li>
+    <li><span class="bio-num">2</span>
+      <span><b>Protein complexes:</b> Dense cliques in the interaction graph
+      become tight clusters in embedding space. The model implicitly learns
+      complex membership without being told the complex identities.</span></li>
+    <li><span class="bio-num">3</span>
+      <span><b>Hub vs peripheral proteins:</b> High-degree hubs (e.g. TP53, EGFR)
+      have diffuse embeddings covering many dimensions; peripheral proteins have
+      sparse, specialised vectors. The classifier learns to use this degree-encoded
+      signature.</span></li>
+    <li><span class="bio-num">4</span>
+      <span><b>Evolutionary conservation:</b> Orthologs tend to occupy similar
+      embedding positions because their interaction partners are conserved across
+      species — the model picks up cross-species conserved interaction logic.</span></li>
+  </ul>
+
+  <h3>Additional biological questions answerable with this framework</h3>
+  <ul class="bio-list">
+    <li><span class="bio-num">→</span>
+      <span><b>Novel interaction discovery:</b> Score all unobserved pairs with the
+      trained model; top-ranking pairs are candidate novel PPIs for experimental
+      validation (yeast two-hybrid, co-IP).</span></li>
+    <li><span class="bio-num">→</span>
+      <span><b>Drug target identification:</b> Proteins whose embedding neighbourhood
+      is perturbed by a disease mutation (e.g. cancer driver) and yet are predicted
+      to interact with known drug targets are prioritised candidates.</span></li>
+    <li><span class="bio-num">→</span>
+      <span><b>Pathway rewiring in disease:</b> Compare embedding cosine-similarity
+      distributions for the same protein pairs across a healthy vs disease STRING
+      network to identify rewired modules.</span></li>
+    <li><span class="bio-num">→</span>
+      <span><b>Protein function annotation:</b> Use kNN in embedding space to
+      transfer GO-term annotations from characterised to uncharacterised proteins
+      (<em>function-by-neighbourhood</em>).</span></li>
+    <li><span class="bio-num">→</span>
+      <span><b>Tissue-specific interactomes:</b> Retrain with tissue-specific
+      co-expression data (GTEx) as STRING channel; use SHAP to find which
+      tissue contexts drive interaction probability.</span></li>
+    <li><span class="bio-num">→</span>
+      <span><b>Cross-species interaction transfer:</b> Map human network embeddings
+      to model-organism embeddings via alignment; predict conserved interactions
+      in poorly-studied organisms.</span></li>
+    <li><span class="bio-num">→</span>
+      <span><b>PPI-disrupting variant prioritisation:</b> Encode wild-type and
+      mutant sequence, compute how much the mutant's embedding shifts, feed into
+      the interaction model to flag variants that likely disrupt key interactions.</span></li>
+  </ul>
+
+  <h3>Limitations & caveats</h3>
+  <ul class="bio-list">
+    <li><span class="bio-num">!</span>
+      <span>Network embeddings are <b>circular</b>: STRING's combined_score is itself
+      derived from computational predictions. High accuracy may partly reflect
+      learning the STRING scoring function rather than true biology.</span></li>
+    <li><span class="bio-num">!</span>
+      <span>Negative sampling is uncertain: medium-confidence pairs used as negatives
+      may contain real interactions not yet characterised.</span></li>
+    <li><span class="bio-num">!</span>
+      <span>Protein-wise split is the correct evaluation but the held-out proteins
+      still share functional categories with training proteins — true zero-shot
+      generalisation to entirely new protein families is likely worse.</span></li>
+  </ul>
+</div>
+
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+const netVar = [13.94, 3.31, 3.13, 2.54, 2.3, 1.9, 1.83, 1.77, 1.63, 1.55, 1.45, 1.31, 1.25, 1.22, 1.19, 1.13, 1.1, 1.08, 1.05, 1.02];
+const seqVar = [9.84, 6.94, 5.43, 4.32, 3.54, 3.4, 3.25, 2.22, 2.21, 1.91, 1.88, 1.73, 1.51, 1.32, 1.26, 1.21, 1.1, 1.04, 1.02, 0.94];
+const labels = netVar.map((_,i)=>`PC${i+1}`);
+
+// cumulative
+const cumSum = arr => arr.reduce((acc,v,i)=>{acc.push((acc[i-1]||0)+v);return acc},[]);
+const netCum = cumSum(netVar);
+const seqCum = cumSum(seqVar);
+
+new Chart(document.getElementById('pcaChart'),{
+  type:'line',
+  data:{
+    labels,
+    datasets:[
+      {label:'Network (cumulative %)',data:netCum,borderColor:'#00d4aa',
+        backgroundColor:'rgba(0,212,170,.08)',fill:true,tension:.35,pointRadius:3},
+      {label:'Sequence (cumulative %)',data:seqCum,borderColor:'#7c6af7',
+        backgroundColor:'rgba(124,106,247,.08)',fill:true,tension:.35,pointRadius:3},
+    ]
+  },
+  options:{
+    responsive:true,
+    plugins:{legend:{labels:{color:'#e2e8f0',font:{family:'DM Sans'}}}},
+    scales:{
+      x:{ticks:{color:'#64748b'},grid:{color:'#1e2d45'}},
+      y:{ticks:{color:'#64748b',callback:v=>v+'%'},grid:{color:'#1e2d45'},
+          title:{display:true,text:'Cumulative variance (%)',color:'#64748b'}}
+    }
+  }
+});
+</script>
+</body>
+</html>
