@@ -1,0 +1,73 @@
+---------------------------------------
+Begin Slurm Prolog: May-03-2026 11:14:47
+Job ID:    5244062
+User ID:   vmaradana3
+Account:   coc
+Job name:  PPI_Full_Pipeline
+Partition: coc-gpu
+QOS:       coc-ice
+---------------------------------------
+Looking in indexes: https://pypi.org/simple, https://pypi.ngc.nvidia.com
+Requirement already satisfied: scikit-learn in /usr/local/lib/python3.10/dist-packages (1.2.0)
+Requirement already satisfied: h5py in /home/hice1/vmaradana3/.local/lib/python3.10/site-packages (3.16.0)
+Requirement already satisfied: matplotlib in /usr/local/lib/python3.10/dist-packages (3.7.3)
+Collecting xgboost<3
+  Obtaining dependency information for xgboost<3 from https://files.pythonhosted.org/packages/e4/3c/e3a93bfa7e8693c825df5ec02a40f7ff5f0950e02198b1e85da9315a8d47/xgboost-2.1.4-py3-none-manylinux_2_28_x86_64.whl.metadata
+  Downloading xgboost-2.1.4-py3-none-manylinux_2_28_x86_64.whl.metadata (2.1 kB)
+Requirement already satisfied: shap in /home/hice1/vmaradana3/.local/lib/python3.10/site-packages (0.49.1)
+Requirement already satisfied: numpy>=1.17.3 in /usr/local/lib/python3.10/dist-packages (from scikit-learn) (1.22.2)
+Requirement already satisfied: scipy>=1.3.2 in /usr/local/lib/python3.10/dist-packages (from scikit-learn) (1.11.1)
+Requirement already satisfied: joblib>=1.1.1 in /usr/local/lib/python3.10/dist-packages (from scikit-learn) (1.3.2)
+Requirement already satisfied: threadpoolctl>=2.0.0 in /usr/local/lib/python3.10/dist-packages (from scikit-learn) (3.2.0)
+Requirement already satisfied: contourpy>=1.0.1 in /usr/local/lib/python3.10/dist-packages (from matplotlib) (1.1.0)
+Requirement already satisfied: cycler>=0.10 in /usr/local/lib/python3.10/dist-packages (from matplotlib) (0.11.0)
+Requirement already satisfied: fonttools>=4.22.0 in /usr/local/lib/python3.10/dist-packages (from matplotlib) (4.42.1)
+Requirement already satisfied: kiwisolver>=1.0.1 in /usr/local/lib/python3.10/dist-packages (from matplotlib) (1.4.5)
+Requirement already satisfied: packaging>=20.0 in /usr/local/lib/python3.10/dist-packages (from matplotlib) (23.1)
+Requirement already satisfied: pillow>=6.2.0 in /usr/local/lib/python3.10/dist-packages (from matplotlib) (9.2.0)
+Requirement already satisfied: pyparsing>=2.3.1 in /usr/local/lib/python3.10/dist-packages (from matplotlib) (3.1.1)
+Requirement already satisfied: python-dateutil>=2.7 in /usr/local/lib/python3.10/dist-packages (from matplotlib) (2.8.2)
+Requirement already satisfied: nvidia-nccl-cu12 in /home/hice1/vmaradana3/.local/lib/python3.10/site-packages (from xgboost<3) (2.30.4)
+Requirement already satisfied: pandas in /usr/local/lib/python3.10/dist-packages (from shap) (1.5.3)
+Requirement already satisfied: tqdm>=4.27.0 in /usr/local/lib/python3.10/dist-packages (from shap) (4.66.1)
+Requirement already satisfied: slicer==0.0.8 in /home/hice1/vmaradana3/.local/lib/python3.10/site-packages (from shap) (0.0.8)
+Requirement already satisfied: numba>=0.54 in /home/hice1/vmaradana3/.local/lib/python3.10/site-packages (from shap) (0.65.1)
+Requirement already satisfied: cloudpickle in /home/hice1/vmaradana3/.local/lib/python3.10/site-packages (from shap) (3.1.2)
+Requirement already satisfied: typing-extensions in /home/hice1/vmaradana3/.local/lib/python3.10/site-packages (from shap) (4.15.0)
+Requirement already satisfied: llvmlite<0.48,>=0.47.0dev0 in /home/hice1/vmaradana3/.local/lib/python3.10/site-packages (from numba>=0.54->shap) (0.47.0)
+Requirement already satisfied: six>=1.5 in /usr/local/lib/python3.10/dist-packages (from python-dateutil>=2.7->matplotlib) (1.16.0)
+Requirement already satisfied: pytz>=2020.1 in /usr/local/lib/python3.10/dist-packages (from pandas->shap) (2023.3)
+Downloading xgboost-2.1.4-py3-none-manylinux_2_28_x86_64.whl (223.6 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 223.6/223.6 MB 398.3 MB/s eta 0:00:00
+Installing collected packages: xgboost
+  Attempting uninstall: xgboost
+    Found existing installation: xgboost 3.2.0
+    Uninstalling xgboost-3.2.0:
+      Successfully uninstalled xgboost-3.2.0
+Successfully installed xgboost-2.1.4
+══════════════════════════════════════════════════════════
+PPI Full Pipeline
+══════════════════════════════════════════════════════════
+Job ID:       5244062
+Node:         atl1-1-03-007-35-0
+CPUs:         8
+GPUs:         0
+Working dir:  /home/hice1/vmaradana3/Desktop/ProteinProteinInteractions
+PYTHONPATH:   /home/hice1/vmaradana3/Desktop/ProteinProteinInteractions/src:
+Start time:   Sun May  3 11:14:59 EDT 2026
+══════════════════════════════════════════════════════════
+PyTorch 2.11.0+cu130
+CUDA available: True
+GPU: NVIDIA A100-PCIE-40GB
+---------------------------------------
+Begin Slurm Epilog: May-03-2026 11:15:09
+Job ID:        5244062
+User ID:       vmaradana3
+Account:       coc
+Job name:      PPI_Full_Pipeline
+Resources:     cpu=8,gres/gpu:a100=1,mem=64G,node=1
+Rsrc Used:     cput=00:03:20,vmem=0,walltime=00:00:25,mem=1201568K,energy_used=0
+Partition:     coc-gpu
+QOS:           coc-ice
+Nodes:         atl1-1-03-007-35-0
+---------------------------------------
