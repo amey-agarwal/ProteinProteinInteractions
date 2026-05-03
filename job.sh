@@ -19,12 +19,16 @@ module purge
 module load pytorch/2.1.0
 module load cuda/12.1.1
 
-# Install any missing packages into user space
+# Install any missing packages into user space (silent if already installed)
 pip install --user scikit-learn h5py matplotlib xgboost shap 2>/dev/null || true
 
-# ── Navigate to project ──────────────────────────────────────
+# ── Navigate to project (ALL scripts run from here) ───────────
 PROJECT_DIR="$HOME/Desktop/ProteinProteinInteractions"
 cd "$PROJECT_DIR" || { echo "ERROR: Project dir not found at $PROJECT_DIR"; exit 1; }
+
+# Add src/ to Python path so imports like "from run_ablation_experiments import ..."
+# work even when running from the project root
+export PYTHONPATH="$PROJECT_DIR/src:$PYTHONPATH"
 
 # ── Print job info ────────────────────────────────────────────
 echo "══════════════════════════════════════════════════════════"
@@ -34,6 +38,8 @@ echo "Job ID:       $SLURM_JOB_ID"
 echo "Node:         $SLURM_NODELIST"
 echo "CPUs:         $SLURM_CPUS_PER_TASK"
 echo "GPUs:         $CUDA_VISIBLE_DEVICES"
+echo "Working dir:  $(pwd)"
+echo "PYTHONPATH:   $PYTHONPATH"
 echo "Start time:   $(date)"
 echo "══════════════════════════════════════════════════════════"
 
@@ -48,12 +54,10 @@ if torch.cuda.is_available():
 
 # ══════════════════════════════════════════════════════════════
 # PHASE 1: Core ablation (generates .npz curves + base results)
-#   Other scripts import from run_ablation_experiments.py
 # ══════════════════════════════════════════════════════════════
 echo ""
 echo "━━━ [1/10] Ablation Study (full data, sequence + network) ━━━"
-cd src
-python run_ablation_experiments.py
+python src/run_ablation_experiments.py
 echo "✓ Ablation complete"
 
 # ══════════════════════════════════════════════════════════════
@@ -61,29 +65,27 @@ echo "✓ Ablation complete"
 # ══════════════════════════════════════════════════════════════
 echo ""
 echo "━━━ [2/10] Sequence+Network Capped Run (150K) ━━━"
-python run_seqnet_capped.py
+python src/run_seqnet_capped.py
 echo "✓ Seqnet capped complete"
 
 echo ""
 echo "━━━ [3/10] Plot ROC/PR Curves ━━━"
-python plot_curves.py
+python src/plot_curves.py
 echo "✓ Curves plotted"
 
 echo ""
 echo "━━━ [4/10] Case Study ━━━"
-python case_study.py
+python src/case_study.py
 echo "✓ Case study complete"
 
 echo ""
 echo "━━━ [5/10] Error Analysis (full data) ━━━"
-python error_analysis.py
+python src/error_analysis.py
 echo "✓ Error analysis complete"
 
 # ══════════════════════════════════════════════════════════════
-# PHASE 3: Independent scripts (src/improved/)
+# PHASE 3: Independent scripts
 # ══════════════════════════════════════════════════════════════
-cd "$PROJECT_DIR"
-
 echo ""
 echo "━━━ [6/10] Model Comparison (LogReg, RF, XGBoost, MLP) ━━━"
 python src/improved/compare_models.py
