@@ -3,7 +3,7 @@
 #SBATCH -N 1 --ntasks-per-node=1        # 1 node, 1 task
 #SBATCH --cpus-per-task=8               # 8 CPU cores for data loading
 #SBATCH --mem=64G                       # 64GB total memory
-#SBATCH --gres=gpu:v100:1               # Request 1 NVIDIA V100 GPU (18 nodes, shortest queue)
+#SBATCH --gres=gpu:1                    # Request any available GPU
 #SBATCH -t 180                          # 3 hours wall time
 #SBATCH -o PPI_Pipeline-%j.out          # Output file
 #SBATCH -e PPI_Pipeline-%j.err          # Error file
