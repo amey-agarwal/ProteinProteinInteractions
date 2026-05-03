@@ -23,7 +23,7 @@ module load anaconda3
 
 # ── Navigate to project ──────────────────────────────────────
 # UPDATE THIS PATH to wherever your project lives on PACE:
-PROJECT_DIR="$HOME/ProteinProteinInteractions"
+PROJECT_DIR="$HOME/Desktop/ProteinProteinInteractions"
 cd "$PROJECT_DIR" || { echo "ERROR: Project dir not found at $PROJECT_DIR"; echo "Run 'ls ~/' on login node to find it"; exit 1; }
 
 # ── Print job info ────────────────────────────────────────────
