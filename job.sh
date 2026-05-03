@@ -22,7 +22,9 @@ module load anaconda3
 # conda activate ppi_env
 
 # ── Navigate to project ──────────────────────────────────────
-cd $HOME/ProteinProteinInteractions
+# UPDATE THIS PATH to wherever your project lives on PACE:
+PROJECT_DIR="$HOME/ProteinProteinInteractions"
+cd "$PROJECT_DIR" || { echo "ERROR: Project dir not found at $PROJECT_DIR"; echo "Run 'ls ~/' on login node to find it"; exit 1; }
 
 # ── Print job info ────────────────────────────────────────────
 echo "══════════════════════════════════════════════════════════"
@@ -80,7 +82,7 @@ echo "✓ Error analysis complete"
 # ══════════════════════════════════════════════════════════════
 # PHASE 3: Independent scripts (src/improved/)
 # ══════════════════════════════════════════════════════════════
-cd $HOME/ProteinProteinInteractions
+cd "$PROJECT_DIR"
 
 echo ""
 echo "━━━ [6/10] Model Comparison (LogReg, RF, XGBoost, MLP) ━━━"
