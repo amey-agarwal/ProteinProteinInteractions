@@ -76,19 +76,6 @@
 </header>
 <main>
 
-<!-- ══ SECTION 0 – KEY QUESTIONS ══ -->
-<div class="card">
-  <h2>0 · Questions This Report Answers</h2>
-  <ul class="bio-list">
-    <li><span class="bio-num">Q1</span>
-      <span>Why do <b>network embeddings</b> outperform sequence embeddings for PPI prediction?</span></li>
-    <li><span class="bio-num">Q2</span>
-      <span>What has the model learned about <b>protein chemistry and biology</b>?</span></li>
-    <li><span class="bio-num">Q3</span>
-      <span>What additional <b>biological questions</b> can be answered with this framework?</span></li>
-  </ul>
-</div>
-
 <!-- ══ SECTION 1 – ABLATION ══ -->
 <div class="card">
   <h2>1 · Model Ablation Results</h2>
@@ -130,15 +117,6 @@
     
   </table>
 
-  <h3>Why network embeddings cluster interactors</h3>
-  <p>Network embeddings (e.g. STRING's DeepWalk / node2vec-style vectors) encode
-  <b>topological proximity</b> in the known PPI graph. Proteins that share many
-  interaction partners end up in nearby regions of the embedding space — which is
-  exactly the signal a classifier needs. Sequence embeddings, by contrast, capture
-  <b>evolutionary / structural similarity</b>; two proteins can be structurally
-  unrelated yet functionally coupled (e.g. scaffold proteins binding diverse partners),
-  so their sequence vectors will appear far apart even though they interact.</p>
-
   <h3>Neighbourhood overlap (k=10 nearest neighbours)</h3>
   <div class="grid2">
     <div class="kpi-box">
@@ -170,19 +148,6 @@
 <tr><td>elemprod_only</td><td>0.7318</td><td>0.8391</td><td>0.8321</td></tr>
 
   </table>
-
-  <h3>Biological interpretation</h3>
-  <ul class="bio-list">
-    <li><span class="bio-num">∥</span>
-      <span><b>|e₁ − e₂| dominates →</b> the model distinguishes interactors by
-      how <em>different</em> their network positions are. This encodes
-      <b>complementarity</b>: e.g. a kinase and its substrate occupy distinct
-      network niches yet interact.</span></li>
-    <li><span class="bio-num">⊙</span>
-      <span><b>e₁ ⊙ e₂ contributes →</b> shared embedding directions reflect
-      <b>co-complex membership</b> (same protein complex → same neighbours →
-      similar embedding dimensions are large simultaneously).</span></li>
-  </ul>
 </div>
 
 <!-- ══ SECTION 4 – PROTOTYPE PAIRS ══ -->
@@ -222,103 +187,28 @@
           200 background samples.</p>
           <table>
             <tr><th>Feature Group</th><th>Mean |SHAP|</th></tr>
-            <tr><td>|e₁ − e₂| (difference)</td><td>42503629717.00871</td></tr>
-            <tr><td>e₁ ⊙ e₂   (product)</td><td>38833922330.09623</td></tr>
+            <tr><td>|e₁ − e₂| (difference)</td><td>213813222288.60083</td></tr>
+            <tr><td>e₁ ⊙ e₂   (product)</td><td>173821387963.88617</td></tr>
           </table>
-          <p class="note">Top embedding dimensions driving predictions (abs-diff group): [[0, 1], [0, 1], [1, 0], [0, 1], [1, 0], [0, 1], [1, 0], [0, 1], [1, 0], [0, 1]]</p>
+          <p class="note">Top embedding dimensions driving predictions (abs-diff group): [[0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [1, 0]]</p>
         </div>
 
 <!-- ══ SECTION 6 – PCA ══ -->
 <div class="card">
   <h2>6 · Embedding Dimensionality (PCA)</h2>
   <p>Cumulative variance explained by the first 20 principal components:
-  <b>network 45.7%</b> vs
-  <b>sequence 56.1%</b>.
+  <b>network 62.4%</b> vs
+  <b>sequence 54.7%</b>.
   A more concentrated variance indicates a more structured, lower-intrinsic-dimension
   space — easier for downstream classifiers.</p>
   <canvas id="pcaChart" height="90"></canvas>
 </div>
-
-<!-- ══ SECTION 7 – BIOLOGY Q&A ══ -->
-<div class="card">
-  <h2>7 · What the Model Learned About Protein Biology <span class="tag">answers Q2 + Q3</span></h2>
-
-  <h3>Chemistry & biology encoded in network embeddings</h3>
-  <ul class="bio-list">
-    <li><span class="bio-num">1</span>
-      <span><b>Functional modules / pathways:</b> STRING edge weights aggregate
-      co-expression, co-localisation, and experimental evidence. Node2vec-style
-      walks therefore encode pathway membership; proteins in the same KEGG pathway
-      cluster together.</span></li>
-    <li><span class="bio-num">2</span>
-      <span><b>Protein complexes:</b> Dense cliques in the interaction graph
-      become tight clusters in embedding space. The model implicitly learns
-      complex membership without being told the complex identities.</span></li>
-    <li><span class="bio-num">3</span>
-      <span><b>Hub vs peripheral proteins:</b> High-degree hubs (e.g. TP53, EGFR)
-      have diffuse embeddings covering many dimensions; peripheral proteins have
-      sparse, specialised vectors. The classifier learns to use this degree-encoded
-      signature.</span></li>
-    <li><span class="bio-num">4</span>
-      <span><b>Evolutionary conservation:</b> Orthologs tend to occupy similar
-      embedding positions because their interaction partners are conserved across
-      species — the model picks up cross-species conserved interaction logic.</span></li>
-  </ul>
-
-  <h3>Additional biological questions answerable with this framework</h3>
-  <ul class="bio-list">
-    <li><span class="bio-num">→</span>
-      <span><b>Novel interaction discovery:</b> Score all unobserved pairs with the
-      trained model; top-ranking pairs are candidate novel PPIs for experimental
-      validation (yeast two-hybrid, co-IP).</span></li>
-    <li><span class="bio-num">→</span>
-      <span><b>Drug target identification:</b> Proteins whose embedding neighbourhood
-      is perturbed by a disease mutation (e.g. cancer driver) and yet are predicted
-      to interact with known drug targets are prioritised candidates.</span></li>
-    <li><span class="bio-num">→</span>
-      <span><b>Pathway rewiring in disease:</b> Compare embedding cosine-similarity
-      distributions for the same protein pairs across a healthy vs disease STRING
-      network to identify rewired modules.</span></li>
-    <li><span class="bio-num">→</span>
-      <span><b>Protein function annotation:</b> Use kNN in embedding space to
-      transfer GO-term annotations from characterised to uncharacterised proteins
-      (<em>function-by-neighbourhood</em>).</span></li>
-    <li><span class="bio-num">→</span>
-      <span><b>Tissue-specific interactomes:</b> Retrain with tissue-specific
-      co-expression data (GTEx) as STRING channel; use SHAP to find which
-      tissue contexts drive interaction probability.</span></li>
-    <li><span class="bio-num">→</span>
-      <span><b>Cross-species interaction transfer:</b> Map human network embeddings
-      to model-organism embeddings via alignment; predict conserved interactions
-      in poorly-studied organisms.</span></li>
-    <li><span class="bio-num">→</span>
-      <span><b>PPI-disrupting variant prioritisation:</b> Encode wild-type and
-      mutant sequence, compute how much the mutant's embedding shifts, feed into
-      the interaction model to flag variants that likely disrupt key interactions.</span></li>
-  </ul>
-
-  <h3>Limitations & caveats</h3>
-  <ul class="bio-list">
-    <li><span class="bio-num">!</span>
-      <span>Network embeddings are <b>circular</b>: STRING's combined_score is itself
-      derived from computational predictions. High accuracy may partly reflect
-      learning the STRING scoring function rather than true biology.</span></li>
-    <li><span class="bio-num">!</span>
-      <span>Negative sampling is uncertain: medium-confidence pairs used as negatives
-      may contain real interactions not yet characterised.</span></li>
-    <li><span class="bio-num">!</span>
-      <span>Protein-wise split is the correct evaluation but the held-out proteins
-      still share functional categories with training proteins — true zero-shot
-      generalisation to entirely new protein families is likely worse.</span></li>
-  </ul>
-</div>
-
 </main>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script>
-const netVar = [13.94, 3.31, 3.13, 2.54, 2.3, 1.9, 1.83, 1.77, 1.63, 1.55, 1.45, 1.31, 1.25, 1.22, 1.19, 1.13, 1.1, 1.08, 1.05, 1.02];
-const seqVar = [9.84, 6.94, 5.43, 4.32, 3.54, 3.4, 3.25, 2.22, 2.21, 1.91, 1.88, 1.73, 1.51, 1.32, 1.26, 1.21, 1.1, 1.04, 1.02, 0.94];
+const netVar = [9.62, 8.99, 8.77, 8.46, 7.32, 2.93, 2.03, 1.87, 1.64, 1.3, 1.26, 1.14, 1.1, 1.05, 0.94, 0.86, 0.83, 0.8, 0.76, 0.72];
+const seqVar = [9.94, 6.38, 5.29, 4.1, 3.6, 3.3, 3.03, 2.32, 2.06, 1.88, 1.78, 1.56, 1.53, 1.37, 1.28, 1.15, 1.08, 1.04, 1.0, 0.98];
 const labels = netVar.map((_,i)=>`PC${i+1}`);
 
 // cumulative
