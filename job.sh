@@ -3,7 +3,8 @@
 #SBATCH -N 1 --ntasks-per-node=1        # 1 node, 1 task
 #SBATCH --cpus-per-task=8               # 8 CPU cores for data loading
 #SBATCH --mem=64G                       # 64GB total memory
-#SBATCH --gres=gpu:1                    # Request 1 GPU
+#SBATCH --gres=gpu:a100:1               # Request 1 NVIDIA A100 GPU
+#SBATCH --gres-flags=enforce-binding
 #SBATCH -t 180                          # 3 hours wall time
 #SBATCH -o PPI_Pipeline-%j.out          # Output file
 #SBATCH -e PPI_Pipeline-%j.err          # Error file
@@ -13,6 +14,7 @@
 # ══════════════════════════════════════════════════════════════
 
 set -e  # Exit on first error
+PYTHON="${PYTHON:-python}"
 
 # ── Load modules ──────────────────────────────────────────────
 module purge
@@ -20,7 +22,7 @@ module load pytorch/2.1.0
 module load cuda/12.1.1
 
 # Install any missing packages into user space (silent if already installed)
-pip install --user scikit-learn h5py matplotlib xgboost shap 2>/dev/null || true
+"$PYTHON" -m pip install --user scikit-learn h5py matplotlib "xgboost<3" shap 2>/dev/null || true
 
 # ── Navigate to project (ALL scripts run from here) ───────────
 PROJECT_DIR="$HOME/Desktop/ProteinProteinInteractions"
@@ -43,7 +45,7 @@ echo "PYTHONPATH:   $PYTHONPATH"
 echo "Start time:   $(date)"
 echo "══════════════════════════════════════════════════════════"
 
-python -c "
+"$PYTHON" -c "
 import torch
 print(f'PyTorch {torch.__version__}')
 print(f'CUDA available: {torch.cuda.is_available()}')
@@ -57,7 +59,7 @@ if torch.cuda.is_available():
 # ══════════════════════════════════════════════════════════════
 echo ""
 echo "━━━ [1/10] Ablation Study (full data, sequence + network) ━━━"
-python src/run_ablation_experiments.py
+"$PYTHON" src/run_ablation_experiments.py
 echo "✓ Ablation complete"
 
 # ══════════════════════════════════════════════════════════════
@@ -65,22 +67,22 @@ echo "✓ Ablation complete"
 # ══════════════════════════════════════════════════════════════
 echo ""
 echo "━━━ [2/10] Sequence+Network Capped Run (150K) ━━━"
-python src/run_seqnet_capped.py
+"$PYTHON" src/run_seqnet_capped.py
 echo "✓ Seqnet capped complete"
 
 echo ""
 echo "━━━ [3/10] Plot ROC/PR Curves ━━━"
-python src/plot_curves.py
+"$PYTHON" src/plot_curves.py
 echo "✓ Curves plotted"
 
 echo ""
 echo "━━━ [4/10] Case Study ━━━"
-python src/case_study.py
+"$PYTHON" src/case_study.py
 echo "✓ Case study complete"
 
 echo ""
 echo "━━━ [5/10] Error Analysis (full data) ━━━"
-python src/error_analysis.py
+"$PYTHON" src/error_analysis.py
 echo "✓ Error analysis complete"
 
 # ══════════════════════════════════════════════════════════════
@@ -88,27 +90,27 @@ echo "✓ Error analysis complete"
 # ══════════════════════════════════════════════════════════════
 echo ""
 echo "━━━ [6/10] Model Comparison (LogReg, RF, XGBoost, MLP) ━━━"
-python src/improved/compare_models.py
+"$PYTHON" src/improved/compare_models.py
 echo "✓ Model comparison complete"
 
 echo ""
 echo "━━━ [7/10] Two-Tower MLP Training (PyTorch, GPU) ━━━"
-python src/improved/train_improved_mlp.py
+"$PYTHON" src/improved/train_improved_mlp.py
 echo "✓ Two-Tower MLP complete"
 
 echo ""
 echo "━━━ [8/10] Attention MLP Training (PyTorch, GPU) ━━━"
-python src/improved/train_attention_mlp.py
+"$PYTHON" src/improved/train_attention_mlp.py
 echo "✓ Attention MLP complete"
 
 echo ""
 echo "━━━ [9/10] SHAP Explainability (XGBoost) ━━━"
-python src/improved/explain_model.py
+"$PYTHON" src/improved/explain_model.py
 echo "✓ SHAP analysis complete"
 
 echo ""
 echo "━━━ [10/10] XAI Full Report ━━━"
-python src/xai_ppi_analysis.py
+"$PYTHON" src/xai_ppi_analysis.py
 echo "✓ XAI report complete"
 
 # ══════════════════════════════════════════════════════════════
