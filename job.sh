@@ -2,7 +2,7 @@
 #SBATCH -J PPI_Full_Pipeline            # Job name
 #SBATCH -N 1 --ntasks-per-node=1        # 1 node, 1 task
 #SBATCH --cpus-per-task=8               # 8 CPU cores for data loading
-#SBATCH --mem-per-cpu=8G                # 8GB per core = 64GB total
+#SBATCH --mem=64G                       # 64GB total memory
 #SBATCH --gres=gpu:1                    # Request 1 GPU
 #SBATCH -t 180                          # 3 hours wall time
 #SBATCH -o PPI_Pipeline-%j.out          # Output file
@@ -16,15 +16,15 @@ set -e  # Exit on first error
 
 # ── Load modules ──────────────────────────────────────────────
 module purge
-module load anaconda3
+module load pytorch/2.1.0
+module load cuda/12.1.1
 
-# Activate conda env if you have one, otherwise use --user packages:
-# conda activate ppi_env
+# Install any missing packages into user space
+pip install --user scikit-learn h5py matplotlib xgboost shap 2>/dev/null || true
 
 # ── Navigate to project ──────────────────────────────────────
-# UPDATE THIS PATH to wherever your project lives on PACE:
 PROJECT_DIR="$HOME/Desktop/ProteinProteinInteractions"
-cd "$PROJECT_DIR" || { echo "ERROR: Project dir not found at $PROJECT_DIR"; echo "Run 'ls ~/' on login node to find it"; exit 1; }
+cd "$PROJECT_DIR" || { echo "ERROR: Project dir not found at $PROJECT_DIR"; exit 1; }
 
 # ── Print job info ────────────────────────────────────────────
 echo "══════════════════════════════════════════════════════════"
@@ -53,7 +53,7 @@ if torch.cuda.is_available():
 echo ""
 echo "━━━ [1/10] Ablation Study (full data, sequence + network) ━━━"
 cd src
-srun python run_ablation_experiments.py
+python run_ablation_experiments.py
 echo "✓ Ablation complete"
 
 # ══════════════════════════════════════════════════════════════
@@ -61,22 +61,22 @@ echo "✓ Ablation complete"
 # ══════════════════════════════════════════════════════════════
 echo ""
 echo "━━━ [2/10] Sequence+Network Capped Run (150K) ━━━"
-srun python run_seqnet_capped.py
+python run_seqnet_capped.py
 echo "✓ Seqnet capped complete"
 
 echo ""
 echo "━━━ [3/10] Plot ROC/PR Curves ━━━"
-srun python plot_curves.py
+python plot_curves.py
 echo "✓ Curves plotted"
 
 echo ""
 echo "━━━ [4/10] Case Study ━━━"
-srun python case_study.py
+python case_study.py
 echo "✓ Case study complete"
 
 echo ""
 echo "━━━ [5/10] Error Analysis (full data) ━━━"
-srun python error_analysis.py
+python error_analysis.py
 echo "✓ Error analysis complete"
 
 # ══════════════════════════════════════════════════════════════
@@ -86,27 +86,27 @@ cd "$PROJECT_DIR"
 
 echo ""
 echo "━━━ [6/10] Model Comparison (LogReg, RF, XGBoost, MLP) ━━━"
-srun python src/improved/compare_models.py
+python src/improved/compare_models.py
 echo "✓ Model comparison complete"
 
 echo ""
 echo "━━━ [7/10] Two-Tower MLP Training (PyTorch, GPU) ━━━"
-srun python src/improved/train_improved_mlp.py
+python src/improved/train_improved_mlp.py
 echo "✓ Two-Tower MLP complete"
 
 echo ""
 echo "━━━ [8/10] Attention MLP Training (PyTorch, GPU) ━━━"
-srun python src/improved/train_attention_mlp.py
+python src/improved/train_attention_mlp.py
 echo "✓ Attention MLP complete"
 
 echo ""
 echo "━━━ [9/10] SHAP Explainability (XGBoost) ━━━"
-srun python src/improved/explain_model.py
+python src/improved/explain_model.py
 echo "✓ SHAP analysis complete"
 
 echo ""
 echo "━━━ [10/10] XAI Full Report ━━━"
-srun python src/xai_ppi_analysis.py
+python src/xai_ppi_analysis.py
 echo "✓ XAI report complete"
 
 # ══════════════════════════════════════════════════════════════
