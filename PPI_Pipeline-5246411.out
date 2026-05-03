@@ -1,0 +1,487 @@
+---------------------------------------
+Begin Slurm Prolog: May-03-2026 16:31:18
+Job ID:    5246411
+User ID:   vmaradana3
+Account:   coc
+Job name:  PPI_Full_Pipeline
+Partition: ice-gpu
+QOS:       coc-ice
+---------------------------------------
+Looking in indexes: https://pypi.org/simple, https://pypi.ngc.nvidia.com
+Requirement already satisfied: scikit-learn in /usr/local/lib/python3.10/dist-packages (1.2.0)
+Requirement already satisfied: h5py in /home/hice1/vmaradana3/.local/lib/python3.10/site-packages (3.16.0)
+Requirement already satisfied: matplotlib in /usr/local/lib/python3.10/dist-packages (3.7.3)
+Requirement already satisfied: xgboost<3 in /home/hice1/vmaradana3/.local/lib/python3.10/site-packages (2.1.4)
+Requirement already satisfied: shap in /home/hice1/vmaradana3/.local/lib/python3.10/site-packages (0.49.1)
+Requirement already satisfied: numpy>=1.17.3 in /usr/local/lib/python3.10/dist-packages (from scikit-learn) (1.22.2)
+Requirement already satisfied: scipy>=1.3.2 in /usr/local/lib/python3.10/dist-packages (from scikit-learn) (1.11.1)
+Requirement already satisfied: joblib>=1.1.1 in /usr/local/lib/python3.10/dist-packages (from scikit-learn) (1.3.2)
+Requirement already satisfied: threadpoolctl>=2.0.0 in /usr/local/lib/python3.10/dist-packages (from scikit-learn) (3.2.0)
+Requirement already satisfied: contourpy>=1.0.1 in /usr/local/lib/python3.10/dist-packages (from matplotlib) (1.1.0)
+Requirement already satisfied: cycler>=0.10 in /usr/local/lib/python3.10/dist-packages (from matplotlib) (0.11.0)
+Requirement already satisfied: fonttools>=4.22.0 in /usr/local/lib/python3.10/dist-packages (from matplotlib) (4.42.1)
+Requirement already satisfied: kiwisolver>=1.0.1 in /usr/local/lib/python3.10/dist-packages (from matplotlib) (1.4.5)
+Requirement already satisfied: packaging>=20.0 in /usr/local/lib/python3.10/dist-packages (from matplotlib) (23.1)
+Requirement already satisfied: pillow>=6.2.0 in /usr/local/lib/python3.10/dist-packages (from matplotlib) (9.2.0)
+Requirement already satisfied: pyparsing>=2.3.1 in /usr/local/lib/python3.10/dist-packages (from matplotlib) (3.1.1)
+Requirement already satisfied: python-dateutil>=2.7 in /usr/local/lib/python3.10/dist-packages (from matplotlib) (2.8.2)
+Requirement already satisfied: nvidia-nccl-cu12 in /home/hice1/vmaradana3/.local/lib/python3.10/site-packages (from xgboost<3) (2.30.4)
+Requirement already satisfied: pandas in /usr/local/lib/python3.10/dist-packages (from shap) (1.5.3)
+Requirement already satisfied: tqdm>=4.27.0 in /usr/local/lib/python3.10/dist-packages (from shap) (4.66.1)
+Requirement already satisfied: slicer==0.0.8 in /home/hice1/vmaradana3/.local/lib/python3.10/site-packages (from shap) (0.0.8)
+Requirement already satisfied: numba>=0.54 in /home/hice1/vmaradana3/.local/lib/python3.10/site-packages (from shap) (0.65.1)
+Requirement already satisfied: cloudpickle in /home/hice1/vmaradana3/.local/lib/python3.10/site-packages (from shap) (3.1.2)
+Requirement already satisfied: typing-extensions in /home/hice1/vmaradana3/.local/lib/python3.10/site-packages (from shap) (4.15.0)
+Requirement already satisfied: llvmlite<0.48,>=0.47.0dev0 in /home/hice1/vmaradana3/.local/lib/python3.10/site-packages (from numba>=0.54->shap) (0.47.0)
+Requirement already satisfied: six>=1.5 in /usr/local/lib/python3.10/dist-packages (from python-dateutil>=2.7->matplotlib) (1.16.0)
+Requirement already satisfied: pytz>=2020.1 in /usr/local/lib/python3.10/dist-packages (from pandas->shap) (2023.3)
+══════════════════════════════════════════════════════════
+PPI Full Pipeline
+══════════════════════════════════════════════════════════
+Job ID:       5246411
+Node:         atl1-1-03-004-27-0
+CPUs:         8
+GPUs:         0
+Working dir:  /home/hice1/vmaradana3/Desktop/ProteinProteinInteractions
+PYTHONPATH:   /home/hice1/vmaradana3/Desktop/ProteinProteinInteractions/src:
+Start time:   Sun May  3 16:31:25 EDT 2026
+══════════════════════════════════════════════════════════
+PyTorch 2.11.0+cu130
+CUDA available: True
+GPU: NVIDIA L40S
+GPU Memory: 47.7 GB
+
+━━━ [1/10] Ablation Study (full data, sequence + network) ━━━
+Loading embeddings from data/embeddings/9606.protein.sequence.embeddings.v12.0.h5...
+Loading embeddings from data/embeddings/9606.protein.network.embeddings.v12.0.h5...
+Train rows before sampling: 209,000
+Test rows before sampling: 12,672
+Dropped mixed rows: 102,938
+Train rows after sampling: 209,000
+Test rows after sampling: 12,672
+
+======================================================================
+Running experiment: sequence
+======================================================================
+
+Building training features...
+sequence feature matrix shape: (209000, 2048)
+sequence missing/skipped pairs: 0
+
+Building testing features...
+sequence feature matrix shape: (12672, 2048)
+sequence missing/skipped pairs: 0
+
+Training model...
+
+=== SEQUENCE RESULTS ===
+Precision: 0.6976
+Recall:    0.5798
+F1-score:  0.6332
+ROC-AUC:   0.7309
+PR-AUC:    0.7419
+
+Classification Report:
+              precision    recall  f1-score   support
+
+           0     0.6637    0.7674    0.7118      6582
+           1     0.6976    0.5798    0.6332      6090
+
+    accuracy                         0.6772     12672
+   macro avg     0.6806    0.6736    0.6725     12672
+weighted avg     0.6800    0.6772    0.6741     12672
+
+
+======================================================================
+Running experiment: network
+======================================================================
+
+Building training features...
+network feature matrix shape: (209000, 1024)
+network missing/skipped pairs: 0
+
+Building testing features...
+network feature matrix shape: (12672, 1024)
+network missing/skipped pairs: 0
+
+Training model...
+
+=== NETWORK RESULTS ===
+Precision: 0.8486
+Recall:    0.7445
+F1-score:  0.7931
+ROC-AUC:   0.8868
+PR-AUC:    0.8962
+
+Classification Report:
+              precision    recall  f1-score   support
+
+           0     0.7877    0.8771    0.8300      6582
+           1     0.8486    0.7445    0.7931      6090
+
+    accuracy                         0.8134     12672
+   macro avg     0.8181    0.8108    0.8116     12672
+weighted avg     0.8170    0.8134    0.8123     12672
+
+
+======================================================================
+Running experiment: sequence_network
+======================================================================
+
+Building training features...
+sequence_network feature matrix shape: (209000, 3072)
+sequence_network missing/skipped pairs: 0
+
+Building testing features...
+sequence_network feature matrix shape: (12672, 3072)
+sequence_network missing/skipped pairs: 0
+
+Training model...
+
+=== SEQUENCE_NETWORK RESULTS ===
+Precision: 0.8298
+Recall:    0.7463
+F1-score:  0.7859
+ROC-AUC:   0.8743
+PR-AUC:    0.8857
+
+Classification Report:
+              precision    recall  f1-score   support
+
+           0     0.7853    0.8584    0.8202      6582
+           1     0.8298    0.7463    0.7859      6090
+
+    accuracy                         0.8045     12672
+   macro avg     0.8076    0.8024    0.8030     12672
+weighted avg     0.8067    0.8045    0.8037     12672
+
+
+======================================================================
+FINAL ABLATION RESULTS
+======================================================================
+           model  precision   recall       f1  roc_auc   pr_auc
+        sequence   0.697550 0.579803 0.633250 0.730860 0.741918
+         network   0.848587 0.744499 0.793143 0.886776 0.896163
+sequence_network   0.829834 0.746305 0.785856 0.874292 0.885675
+
+Saved ablation results to: data/processed/ablation_results.csv
+✓ Ablation complete
+
+━━━ [2/10] Sequence+Network Capped Run (150K) ━━━
+Loading data...
+Loading embeddings from data/embeddings/9606.protein.sequence.embeddings.v12.0.h5...
+Loading embeddings from data/embeddings/9606.protein.network.embeddings.v12.0.h5...
+Train rows before sampling: 209,000
+Test rows before sampling: 12,672
+Dropped mixed rows: 102,938
+Train rows: 150,000  (capped at 150,000)
+Test rows:  12,672
+
+Building sequence_network features...
+sequence_network feature matrix shape: (150000, 3072)
+sequence_network missing/skipped pairs: 0
+sequence_network feature matrix shape: (12672, 3072)
+sequence_network missing/skipped pairs: 0
+X_train: (150000, 3072) (1.84 GB)
+X_test:  (12672, 3072) (0.16 GB)
+
+Training model...
+
+Evaluating...
+
+F1:      0.7859
+ROC-AUC: 0.8750
+PR-AUC:  0.8846
+Saved curves to data/processed/curves/sequence_network.npz
+
+Building combined results CSV...
+
+======================================================================
+FINAL ABLATION RESULTS (full data; sequence_network capped at 150K)
+======================================================================
+           model  precision   recall       f1  roc_auc   pr_auc
+        sequence   0.697550 0.579803 0.633250 0.730860 0.741918
+         network   0.848587 0.744499 0.793143 0.886776 0.896163
+sequence_network   0.833825 0.743186 0.785900 0.875029 0.884608
+
+Saved to data/processed/ablation_results.csv
+✓ Seqnet capped complete
+
+━━━ [3/10] Plot ROC/PR Curves ━━━
+Saved figures/roc_curves.png
+Saved figures/pr_curves.png
+Saved figures/roc_pr_combined.png
+✓ Curves plotted
+
+━━━ [4/10] Case Study ━━━
+Loading data...
+Loading embeddings from data/embeddings/9606.protein.sequence.embeddings.v12.0.h5...
+Loading embeddings from data/embeddings/9606.protein.network.embeddings.v12.0.h5...
+Train rows before sampling: 209,000
+Test rows before sampling: 12,672
+Dropped mixed rows: 102,938
+Building features (network mode)...
+network feature matrix shape: (209000, 1024)
+network missing/skipped pairs: 0
+network feature matrix shape: (12672, 1024)
+network missing/skipped pairs: 0
+Training network-only model...
+Predicting on test set...
+Loading protein info and selecting pairs...
+
+| Protein A | Protein B | True label | Pred prob | Correct? | Notes |
+|---|---|---|---|---|---|
+| RPL8 (ENSP00000262584) | RPL4 (ENSP00000311430) | interact | 1.000 | ✓ | top correct positive — A: 60S ribosomal protein L8 |
+| RPS11 (ENSP00000270625) | RPS24 (ENSP00000414321) | interact | 1.000 | ✓ | strong correct positive — A: Ribosomal protein S11 |
+| PRAMEF1 (ENSP00000332134) | KCNV1 (ENSP00000435954) | no | 0.000 | ✓ | top correct negative — A: PRAME family member 1 |
+| H2BS1 (ENSP00000481622) | H2BC15 (ENSP00000483903) | no | 1.000 | ✗ | most confident miss — A: Histone H2B type F-S |
+
+Saved case-study table to: data/processed/case_study.md
+✓ Case study complete
+
+━━━ [5/10] Error Analysis (full data) ━━━
+=================================================================
+Error Analysis — Network-Only MLP
+=================================================================
+
+[1/6] Loading data and embeddings...
+Loading embeddings from data/embeddings/9606.protein.network.embeddings.v12.0.h5...
+Loading embeddings from data/embeddings/9606.protein.sequence.embeddings.v12.0.h5...
+[2/6] Splitting data and building features...
+Train rows before sampling: 209,000
+Test rows before sampling: 12,672
+Dropped mixed rows: 102,938
+network feature matrix shape: (209000, 1024)
+network missing/skipped pairs: 0
+network feature matrix shape: (12672, 1024)
+network missing/skipped pairs: 0
+   Train: 209,000 rows | Test: 12,672 rows
+[3/6] Training model...
+[4/6] Computing embedding cosine similarities...
+[5/6] Running analyses...
+[6/6] Writing report...
+
+Report saved to: data/processed/error_analysis.md
+Details saved to: data/processed/error_details.csv
+
+Summary: 2,365 errors out of 12,672 test pairs (18.7%)
+  False Positives: 809 | False Negatives: 1,556
+✓ Error analysis complete
+
+━━━ [6/10] Model Comparison (LogReg, RF, XGBoost, MLP) ━━━
+Train: 200,000  |  Test: 12,672
+Feature shape: (200000, 3072)
+
+Training Logistic Regression...
+  F1=0.7831  ROC-AUC=0.8708  PR-AUC=0.8724
+
+Training Random Forest...
+  F1=0.7163  ROC-AUC=0.8374  PR-AUC=0.8431
+
+Training XGBoost...
+  F1=0.7692  ROC-AUC=0.8625  PR-AUC=0.8701
+
+Training MLP (sklearn)...
+  F1=0.7790  ROC-AUC=0.8785  PR-AUC=0.8896
+
+Training Two-Tower MLP...
+  TT Epoch   1  train=0.3951  val=0.3547
+  TT Epoch  20  train=0.3174  val=0.3256
+  TT Epoch  40  train=0.2364  val=0.3012
+  TT early stop at epoch 47
+  F1=0.8019  ROC-AUC=0.8960  PR-AUC=0.9019
+
+======================================================================
+              model  precision   recall       f1  roc_auc   pr_auc
+Logistic Regression   0.803211 0.764039 0.783136 0.870777 0.872442
+      Random Forest   0.826180 0.632184 0.716279 0.837367 0.843086
+            XGBoost   0.811146 0.731363 0.769191 0.862488 0.870075
+      MLP (sklearn)   0.856777 0.714122 0.778972 0.878490 0.889586
+      Two-Tower MLP   0.868325 0.744992 0.801944 0.895967 0.901932
+
+Saved results to data/processed/model_comparison_results.csv
+Saved plots/roc_curves.png
+Saved plots/pr_curves.png
+Saved plots/confusion_matrices.png
+Saved plots/metric_comparison.png
+✓ Model comparison complete
+
+━━━ [7/10] Two-Tower MLP Training (PyTorch, GPU) ━━━
+Device: cuda
+Train: 200,000  |  Test: 12,672
+Feature dim: 3072  |  Train: 180000  Val: 20000  Test: 12672
+Model parameters: 427,265
+Epoch   1  train_loss=0.3951  val_loss=0.3547  lr=0.000500
+Epoch  10  train_loss=0.3239  val_loss=0.3287  lr=0.000500
+Epoch  20  train_loss=0.3174  val_loss=0.3256  lr=0.000500
+Epoch  30  train_loss=0.2843  val_loss=0.3144  lr=0.000250
+Epoch  40  train_loss=0.2364  val_loss=0.3012  lr=0.000063
+Early stopping at epoch 47
+
+=== Improved MLP Results ===
+   precision: 0.8683
+      recall: 0.7450
+          f1: 0.8019
+     roc_auc: 0.8960
+      pr_auc: 0.9019
+
+Classification Report:
+              precision    recall  f1-score   support
+
+           0     0.7915    0.8955    0.8403      6582
+           1     0.8683    0.7450    0.8019      6090
+
+    accuracy                         0.8232     12672
+   macro avg     0.8299    0.8202    0.8211     12672
+weighted avg     0.8284    0.8232    0.8218     12672
+
+
+Saved model to models/improved_mlp.pt
+✓ Two-Tower MLP complete
+
+━━━ [8/10] Attention MLP Training (PyTorch, GPU) ━━━
+Device: cuda
+
+[1/6] Loading data...
+  Train: 200,000  |  Test: 12,672
+[2/6] Building features...
+  Feature dim: 3072  |  Train: 180000  Val: 20000  Test: 12672
+[3/6] Training attention model...
+  Parameters: 493,569
+  Epoch   1  train=0.3962  val=0.3490  lr=0.000500
+  Epoch  10  train=0.3251  val=0.3273  lr=0.000500
+  Epoch  20  train=0.2890  val=0.3153  lr=0.000250
+  Epoch  30  train=0.2507  val=0.3209  lr=0.000125
+  Epoch  40  train=0.2226  val=0.3116  lr=0.000031
+  Early stopping at epoch 49
+[4/6] Evaluating...
+
+=== Attention MLP Results ===
+     precision: 0.8792
+        recall: 0.7113
+            f1: 0.7864
+       roc_auc: 0.8862
+        pr_auc: 0.8951
+
+              precision    recall  f1-score   support
+
+           0     0.7730    0.9096    0.8358      6582
+           1     0.8792    0.7113    0.7864      6090
+
+    accuracy                         0.8143     12672
+   macro avg     0.8261    0.8105    0.8111     12672
+weighted avg     0.8241    0.8143    0.8121     12672
+
+[5/6] Extracting attention weights...
+  Attention weights shape: (12672, 2, 2)
+[6/6] Generating plots and report...
+  Saved attention plot to plots/attention_weights.png
+  Report saved to data/processed/attention_analysis.md
+  Model saved to models/attention_mlp.pt
+✓ Attention MLP complete
+
+━━━ [9/10] SHAP Explainability (XGBoost) ━━━
+Training XGBoost for SHAP analysis...
+Computing SHAP values on 500 test samples...
+Saved plots/shap_summary.png
+Saved plots/shap_top_features.csv
+
+Top 10 most important features:
+    feature  mean_abs_shap
+abs_diff_37       0.114195
+product_344       0.095353
+product_182       0.091717
+product_467       0.089037
+product_126       0.086385
+product_255       0.083881
+product_355       0.082879
+product_445       0.073974
+product_105       0.070087
+ product_25       0.069373
+✓ SHAP analysis complete
+
+━━━ [10/10] XAI Full Report ━━━
+=================================================================
+PPI · Explainable AI Analysis
+=================================================================
+
+[1/9] Loading data …
+  Loading embeddings: 9606.protein.network.embeddings.v12.0.h5
+  Loading embeddings: 9606.protein.sequence.embeddings.v12.0.h5
+
+[2/9] Protein-wise split …
+  train=50,000  test=10,000
+
+[3/9] Ablation experiments …
+  → network embeddings
+    built 50,000 pairs  (skipped 0)
+    built 10,000 pairs  (skipped 0)
+  → sequence embeddings
+    built 50,000 pairs  (skipped 0)
+    built 10,000 pairs  (skipped 0)
+  → sequence + network (combined)
+  → STRING evidence features only
+    [network               ] F1=0.7775  ROC-AUC=0.8707
+    [sequence              ] F1=0.6118  ROC-AUC=0.7193
+    [sequence+network      ] F1=0.7725  ROC-AUC=0.8632
+    [evidence scores       ] F1=1.0000  ROC-AUC=1.0000
+
+[4/9] Embedding geometry analysis …
+  [network] pos cos=0.5015  neg cos=0.2779  Δcos=0.2236
+  [sequence] pos cos=0.5207  neg cos=0.4643  Δcos=0.0564
+
+[5/9] Neighbourhood overlap analysis …
+  pos overlap=0.1270  neg overlap=0.0220
+
+[6/9] PCA dimensionality analysis …
+  network cumvar@20=44.6%  sequence cumvar@20=55.6%
+
+[7/9] Prototype pairs …
+
+[8/9] Component ablation (embedding dim=512) …
+    [full                ] F1=0.7683  ROC-AUC=0.8659
+    [absdiff_only        ] F1=0.6942  ROC-AUC=0.7852
+    [elemprod_only       ] F1=0.7321  ROC-AUC=0.8398
+
+[9/9] SHAP analysis …
+  Running KernelSHAP on 300 samples …
+
+Generating HTML report …
+
+✓  Report saved to: data/processed/xai_report.html
+   Open in any browser for full interactive analysis.
+✓ XAI report complete
+
+══════════════════════════════════════════════════════════
+ALL DONE
+End time: Sun May  3 16:52:14 EDT 2026
+══════════════════════════════════════════════════════════
+
+Outputs:
+  data/processed/ablation_results.csv
+  data/processed/ablation_results_50k.csv
+  data/processed/model_comparison_results.csv
+  data/processed/error_analysis.md
+  data/processed/error_details.csv
+  data/processed/case_study.md
+  data/processed/attention_analysis.md
+  data/processed/xai_report.html
+  models/improved_mlp.pt
+  models/attention_mlp.pt
+  figures/roc_curves.png
+  figures/pr_curves.png
+  plots/attention_weights.png
+  plots/confusion_matrices.png
+  plots/shap_summary.png
+---------------------------------------
+Begin Slurm Epilog: May-03-2026 16:52:14
+Job ID:        5246411
+User ID:       vmaradana3
+Account:       coc
+Job name:      PPI_Full_Pipeline
+Resources:     cpu=8,gres/gpu:l40s=1,mem=64G,node=1
+Rsrc Used:     cput=02:47:44,vmem=0,walltime=00:20:58,mem=15169596K,energy_used=0
+Partition:     ice-gpu
+QOS:           coc-ice
+Nodes:         atl1-1-03-004-27-0
+---------------------------------------

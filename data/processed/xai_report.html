@@ -97,9 +97,9 @@
   <table>
     <tr><th>Feature Set</th><th>Precision</th><th>Recall</th>
         <th>F1</th><th>ROC-AUC</th><th>PR-AUC</th></tr>
-    <tr><td>network</td><td>0.8207</td><td>0.7263</td><td>0.7706</td><td>0.8644</td><td>0.8726</td></tr>
-<tr><td>sequence</td><td>0.6947</td><td>0.5599</td><td>0.6201</td><td>0.7274</td><td>0.7245</td></tr>
-<tr><td>sequence+network</td><td>0.8057</td><td>0.7491</td><td>0.7764</td><td>0.8642</td><td>0.8735</td></tr>
+    <tr><td>network</td><td>0.8225</td><td>0.7372</td><td>0.7775</td><td>0.8707</td><td>0.8799</td></tr>
+<tr><td>sequence</td><td>0.6855</td><td>0.5524</td><td>0.6118</td><td>0.7193</td><td>0.7210</td></tr>
+<tr><td>sequence+network</td><td>0.8088</td><td>0.7393</td><td>0.7725</td><td>0.8632</td><td>0.8725</td></tr>
 <tr class="best-row"><td>evidence scores</td><td>1.0000</td><td>1.0000</td><td>1.0000</td><td>1.0000</td><td>1.0000</td></tr>
 
   </table>
@@ -166,8 +166,8 @@
   <table>
     <tr><th>Feature Component</th><th>F1</th><th>ROC-AUC</th><th>PR-AUC</th></tr>
     <tr><td>full</td><td>0.7683</td><td>0.8659</td><td>0.8693</td></tr>
-<tr><td>absdiff_only</td><td>0.6843</td><td>0.7851</td><td>0.7914</td></tr>
-<tr><td>elemprod_only</td><td>0.7318</td><td>0.8391</td><td>0.8321</td></tr>
+<tr><td>absdiff_only</td><td>0.6942</td><td>0.7852</td><td>0.7913</td></tr>
+<tr><td>elemprod_only</td><td>0.7321</td><td>0.8398</td><td>0.8334</td></tr>
 
   </table>
 
@@ -194,22 +194,22 @@
   <h3>Top predicted interacting pairs</h3>
   <table>
     <tr><th>Protein 1</th><th>Protein 2</th><th>Confidence</th></tr>
-    <tr class="pos-row"><td>ENSP00000262584</td><td>ENSP00000311430</td><td>1.0</td></tr>
+    <tr class="pos-row"><td>ENSP00000311430</td><td>ENSP00000375730</td><td>1.0</td></tr>
+<tr class="pos-row"><td>ENSP00000262584</td><td>ENSP00000311430</td><td>1.0</td></tr>
 <tr class="pos-row"><td>ENSP00000311430</td><td>ENSP00000367806</td><td>1.0</td></tr>
-<tr class="pos-row"><td>ENSP00000346050</td><td>ENSP00000414321</td><td>1.0</td></tr>
-<tr class="pos-row"><td>ENSP00000311430</td><td>ENSP00000375730</td><td>1.0</td></tr>
-<tr class="pos-row"><td>ENSP00000262584</td><td>ENSP00000367806</td><td>1.0</td></tr>
+<tr class="pos-row"><td>ENSP00000346012</td><td>ENSP00000404375</td><td>1.0</td></tr>
+<tr class="pos-row"><td>ENSP00000270625</td><td>ENSP00000367806</td><td>1.0</td></tr>
 
   </table>
 
   <h3>Top predicted non-interacting pairs</h3>
   <table>
     <tr><th>Protein 1</th><th>Protein 2</th><th>Confidence</th></tr>
-    <tr class="neg-row"><td>ENSP00000304133</td><td>ENSP00000412130</td><td>0.0</td></tr>
-<tr class="neg-row"><td>ENSP00000265720</td><td>ENSP00000392330</td><td>0.0</td></tr>
-<tr class="neg-row"><td>ENSP00000255764</td><td>ENSP00000274140</td><td>0.0001</td></tr>
-<tr class="neg-row"><td>ENSP00000253363</td><td>ENSP00000377845</td><td>0.0001</td></tr>
-<tr class="neg-row"><td>ENSP00000320219</td><td>ENSP00000347836</td><td>0.0001</td></tr>
+    <tr class="neg-row"><td>ENSP00000253363</td><td>ENSP00000377845</td><td>0.0001</td></tr>
+<tr class="neg-row"><td>ENSP00000376322</td><td>ENSP00000498258</td><td>0.0003</td></tr>
+<tr class="neg-row"><td>ENSP00000265720</td><td>ENSP00000392330</td><td>0.0004</td></tr>
+<tr class="neg-row"><td>ENSP00000287957</td><td>ENSP00000400333</td><td>0.0004</td></tr>
+<tr class="neg-row"><td>ENSP00000304133</td><td>ENSP00000412130</td><td>0.0005</td></tr>
 
   </table>
 </div>
@@ -222,18 +222,18 @@
           200 background samples.</p>
           <table>
             <tr><th>Feature Group</th><th>Mean |SHAP|</th></tr>
-            <tr><td>|e₁ − e₂| (difference)</td><td>42503629717.00871</td></tr>
-            <tr><td>e₁ ⊙ e₂   (product)</td><td>38833922330.09623</td></tr>
+            <tr><td>|e₁ − e₂| (difference)</td><td>65873164321.59337</td></tr>
+            <tr><td>e₁ ⊙ e₂   (product)</td><td>2304708100.10242</td></tr>
           </table>
-          <p class="note">Top embedding dimensions driving predictions (abs-diff group): [[0, 1], [0, 1], [1, 0], [0, 1], [1, 0], [0, 1], [1, 0], [0, 1], [1, 0], [0, 1]]</p>
+          <p class="note">Top embedding dimensions driving predictions (abs-diff group): [[0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [1, 0], [1, 0], [0, 1], [0, 1]]</p>
         </div>
 
 <!-- ══ SECTION 6 – PCA ══ -->
 <div class="card">
   <h2>6 · Embedding Dimensionality (PCA)</h2>
   <p>Cumulative variance explained by the first 20 principal components:
-  <b>network 45.7%</b> vs
-  <b>sequence 56.1%</b>.
+  <b>network 44.6%</b> vs
+  <b>sequence 55.6%</b>.
   A more concentrated variance indicates a more structured, lower-intrinsic-dimension
   space — easier for downstream classifiers.</p>
   <canvas id="pcaChart" height="90"></canvas>
@@ -317,8 +317,8 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script>
-const netVar = [13.94, 3.31, 3.13, 2.54, 2.3, 1.9, 1.83, 1.77, 1.63, 1.55, 1.45, 1.31, 1.25, 1.22, 1.19, 1.13, 1.1, 1.08, 1.05, 1.02];
-const seqVar = [9.84, 6.94, 5.43, 4.32, 3.54, 3.4, 3.25, 2.22, 2.21, 1.91, 1.88, 1.73, 1.51, 1.32, 1.26, 1.21, 1.1, 1.04, 1.02, 0.94];
+const netVar = [13.53, 3.24, 3.02, 2.49, 2.12, 1.95, 1.86, 1.76, 1.57, 1.46, 1.4, 1.28, 1.24, 1.21, 1.16, 1.13, 1.11, 1.06, 1.03, 1.01];
+const seqVar = [9.91, 6.79, 5.36, 4.56, 3.34, 3.29, 3.25, 2.26, 2.17, 1.88, 1.78, 1.69, 1.44, 1.32, 1.28, 1.18, 1.12, 1.07, 0.99, 0.96];
 const labels = netVar.map((_,i)=>`PC${i+1}`);
 
 // cumulative
