@@ -1,4 +1,0 @@
-/usr/local/pace-apps/lmod/lmod/init/bash: line 206: conda: command not found
-Traceback (most recent call last):
-  File "<string>", line 7, in <module>
-AttributeError: 'torch._C._CudaDeviceProperties' object has no attribute 'total_mem'. Did you mean: 'total_memory'?

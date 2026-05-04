@@ -89,22 +89,22 @@ echo "✓ Error analysis complete"
 # ══════════════════════════════════════════════════════════════
 echo ""
 echo "━━━ [6/10] Model Comparison (LogReg, RF, XGBoost, MLP) ━━━"
-"$PYTHON" src/improved/compare_models.py
+"$PYTHON" src/compare_models.py
 echo "✓ Model comparison complete"
 
 echo ""
 echo "━━━ [7/10] Two-Tower MLP Training (PyTorch, GPU) ━━━"
-"$PYTHON" src/improved/train_improved_mlp.py
+"$PYTHON" src/train_two_tower_mlp.py
 echo "✓ Two-Tower MLP complete"
 
 echo ""
 echo "━━━ [8/10] Attention MLP Training (PyTorch, GPU) ━━━"
-"$PYTHON" src/improved/train_attention_mlp.py
+"$PYTHON" src/train_attention_mlp.py
 echo "✓ Attention MLP complete"
 
 echo ""
 echo "━━━ [9/10] SHAP Explainability (XGBoost) ━━━"
-"$PYTHON" src/improved/explain_model.py
+"$PYTHON" src/explain_model.py
 echo "✓ SHAP analysis complete"
 
 echo ""
@@ -123,7 +123,6 @@ echo "════════════════════════�
 echo ""
 echo "Outputs:"
 echo "  data/processed/ablation_results.csv"
-echo "  data/processed/ablation_results_50k.csv"
 echo "  data/processed/model_comparison_results.csv"
 echo "  data/processed/error_analysis.md"
 echo "  data/processed/error_details.csv"
@@ -132,8 +131,9 @@ echo "  data/processed/attention_analysis.md"
 echo "  data/processed/xai_report.html"
 echo "  models/improved_mlp.pt"
 echo "  models/attention_mlp.pt"
-echo "  figures/roc_curves.png"
-echo "  figures/pr_curves.png"
+echo "  plots/roc_curves.png"
+echo "  plots/pr_curves.png"
+echo "  plots/roc_pr_combined.png"
 echo "  plots/attention_weights.png"
 echo "  plots/confusion_matrices.png"
 echo "  plots/shap_summary.png"

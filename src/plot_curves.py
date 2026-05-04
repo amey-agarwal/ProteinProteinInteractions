@@ -6,7 +6,7 @@ import numpy as np
 
 
 CURVES_DIR = Path("data/processed/curves")
-FIGURES_DIR = Path("figures")
+FIGURES_DIR = Path("plots")
 
 MODES = ["sequence", "network", "sequence_network"]
 COLORS = {

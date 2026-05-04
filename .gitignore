@@ -1,10 +1,15 @@
 *.pdf
 *.gz
 .claude/
-plan.md
 .DS_Store
 pyvenv/
 .venv/
 __pycache__/
 *.pyc
-data/processed/*.log
+*.out
+*.err
+models/
+data/raw/
+data/embeddings/
+data/processed/ppi_dataset_hard.csv
+data/processed/curves/
