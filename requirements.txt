@@ -1,0 +1,9 @@
+torch>=2.0
+scikit-learn
+h5py
+matplotlib
+pandas
+numpy
+joblib
+xgboost<3
+shap
