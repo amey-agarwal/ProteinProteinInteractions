@@ -1,6 +1,6 @@
 # Protein-Protein Interaction Prediction
 
-Predicting protein-protein interactions using network and sequence embeddings from STRING v12.0 (Homo sapiens, taxon 9606).
+Predicting protein-protein interactions using network and sequence embeddings from STRING.
 
 ## Setup
 
