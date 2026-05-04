@@ -1,14 +1,4 @@
-"""Two-Tower MLP with cross-tower attention.
-
-Extends the Two-Tower architecture by adding multi-head self-attention between
-the network and sequence tower outputs before fusion. The attention weights
-reveal how much the model relies on each embedding type per prediction.
-
-Outputs:
-  - models/attention_mlp.pt              (trained model weights)
-  - data/processed/attention_analysis.md  (attention weight analysis)
-  - plots/attention_weights.png           (visualization)
-"""
+"""Two-Tower MLP with cross-tower multi-head self-attention fusion."""
 from pathlib import Path
 
 import h5py
@@ -47,26 +37,13 @@ LR = 5e-4
 WEIGHT_DECAY = 0.01
 PATIENCE = 15
 VAL_FRACTION = 0.1
-NET_PAIR_DIM = 1024  # |e1-e2| + e1*e2 for 512-dim network embeddings
-SEQ_PAIR_DIM = 2048  # |e1-e2| + e1*e2 for 1024-dim sequence embeddings
+NET_PAIR_DIM = 1024
+SEQ_PAIR_DIM = 2048
 TOWER_DIM = 128
 NUM_HEADS = 4
 
 
 class AttentionPPINet(nn.Module):
-    """Two-Tower MLP with multi-head self-attention fusion.
-
-    Architecture:
-      net_tower: NET_PAIR_DIM → 128 (BN + ReLU + Dropout)
-      seq_tower: SEQ_PAIR_DIM → 128 (BN + ReLU + Dropout)
-      attention: 2 tokens of dim 128, 4-head self-attention
-      head: 256 → 128 → 1 (BN + ReLU + Dropout)
-
-    The attention layer lets the network and sequence representations
-    attend to each other before fusion. The 2x2 attention weight matrix
-    shows cross-tower dependencies.
-    """
-
     def __init__(self):
         super().__init__()
         self.net_tower = nn.Sequential(
@@ -100,23 +77,18 @@ class AttentionPPINet(nn.Module):
         x_net = x[:, :NET_PAIR_DIM]
         x_seq = x[:, NET_PAIR_DIM:]
 
-        h_net = self.net_tower(x_net)  # (B, 128)
-        h_seq = self.seq_tower(x_seq)  # (B, 128)
+        h_net = self.net_tower(x_net)
+        h_seq = self.seq_tower(x_seq)
 
-        # Stack as 2-token sequence: (B, 2, 128)
         tokens = torch.stack([h_net, h_seq], dim=1)
-
-        # Self-attention with residual connection
         attn_out, attn_weights = self.attention(tokens, tokens, tokens)
-        tokens = self.attn_norm(tokens + attn_out)  # (B, 2, 128)
-
-        # Flatten back to (B, 256)
+        tokens = self.attn_norm(tokens + attn_out)
         h = tokens.reshape(tokens.size(0), -1)
 
         logits = self.head(h).squeeze(-1)
 
         if return_attention:
-            return logits, attn_weights  # attn_weights: (B, 2, 2)
+            return logits, attn_weights
         return logits
 
 
@@ -150,7 +122,6 @@ def build_features(df, seq_emb, net_emb):
     n2 = np.array([net_emb[p] for p in p2s], dtype=np.float32)
     s1 = np.array([seq_emb[p] for p in p1s], dtype=np.float32)
     s2 = np.array([seq_emb[p] for p in p2s], dtype=np.float32)
-    # network features first, then sequence (matches NET_PAIR_DIM / SEQ_PAIR_DIM split)
     X = np.concatenate([np.abs(n1 - n2), n1 * n2, np.abs(s1 - s2), s1 * s2], axis=1)
     y = valid["label"].values.astype(np.float32)
     pairs = valid[["protein1", "protein2"]].reset_index(drop=True)
@@ -238,7 +209,6 @@ def evaluate(model, X_test, y_test, device):
 
 
 def extract_attention_weights(model, X_test, device, batch_size=1024):
-    """Extract attention weights for all test samples."""
     model.eval()
     all_weights = []
     X_tensor = torch.tensor(X_test, dtype=torch.float32)
@@ -247,16 +217,10 @@ def extract_attention_weights(model, X_test, device, batch_size=1024):
             batch = X_tensor[i:i + batch_size].to(device)
             _, attn_w = model(batch, return_attention=True)
             all_weights.append(attn_w.cpu().numpy())
-    return np.concatenate(all_weights, axis=0)  # (N, 2, 2)
+    return np.concatenate(all_weights, axis=0)
 
 
 def analyze_attention(attn_weights, y_true, y_pred, y_prob, test_pairs, info_df):
-    """Analyze attention weight patterns across different prediction categories.
-
-    attn_weights: (N, 2, 2) — rows = query (net, seq), cols = key (net, seq)
-      [0,0] = net attending to net,  [0,1] = net attending to seq
-      [1,0] = seq attending to net,  [1,1] = seq attending to seq
-    """
     correct = y_pred == y_true
     categories = {
         "All predictions": np.ones(len(y_true), dtype=bool),
@@ -293,20 +257,18 @@ def analyze_attention(attn_weights, y_true, y_pred, y_prob, test_pairs, info_df)
             f"{mean_w[1,0]:.4f} | {mean_w[1,1]:.4f} |"
         )
 
-    # Net vs Seq reliance summary
     all_w = attn_weights.mean(axis=0)
     net_self = all_w[0, 0]
     net_cross = all_w[0, 1]
     seq_self = all_w[1, 1]
     seq_cross = all_w[1, 0]
-    net_reliance = (net_self + seq_cross) / 2  # how much total attention goes to network
-    seq_reliance = (seq_self + net_cross) / 2  # how much total attention goes to sequence
+    net_reliance = (net_self + seq_cross) / 2
+    seq_reliance = (seq_self + net_cross) / 2
 
     lines.append(f"\n**Overall tower reliance:**")
     lines.append(f"- Network tower receives {net_reliance:.1%} of attention")
     lines.append(f"- Sequence tower receives {seq_reliance:.1%} of attention")
 
-    # Attention difference between correct and incorrect
     if "Correct positives" in category_means and "False negatives" in category_means:
         cp = category_means["Correct positives"]
         fn = category_means["False negatives"]
@@ -323,7 +285,6 @@ def analyze_attention(attn_weights, y_true, y_pred, y_prob, test_pairs, info_df)
 
 
 def plot_attention(category_means, output_path):
-    """Plot attention weight heatmaps for each category."""
     categories = [k for k in category_means if k in [
         "All predictions", "Correct positives", "Correct negatives",
         "False positives", "False negatives"
@@ -367,13 +328,11 @@ def main():
 
     MODEL_OUTPUT.parent.mkdir(parents=True, exist_ok=True)
 
-    # Load data
     print("\n[1/6] Loading data...")
     df = pd.read_csv(DATASET_PATH)
     seq_emb = load_embeddings(SEQUENCE_EMBEDDINGS_PATH)
     net_emb = load_embeddings(NETWORK_EMBEDDINGS_PATH)
 
-    # Split
     train_df, test_df = protein_wise_split(df)
     if len(train_df) > MAX_TRAIN_ROWS:
         train_df = train_df.sample(n=MAX_TRAIN_ROWS, random_state=RANDOM_SEED).reset_index(drop=True)
@@ -381,7 +340,6 @@ def main():
         test_df = test_df.sample(n=MAX_TEST_ROWS, random_state=RANDOM_SEED).reset_index(drop=True)
     print(f"  Train: {len(train_df):,}  |  Test: {len(test_df):,}")
 
-    # Build features
     print("[2/6] Building features...")
     X_train_full, y_train_full, _ = build_features(train_df, seq_emb, net_emb)
     X_test, y_test, test_pairs = build_features(test_df, seq_emb, net_emb)
@@ -395,7 +353,6 @@ def main():
 
     print(f"  Feature dim: {X_train.shape[1]}  |  Train: {len(X_train)}  Val: {len(X_val)}  Test: {len(X_test)}")
 
-    # Train
     print("[3/6] Training attention model...")
     train_loader = DataLoader(
         TensorDataset(torch.tensor(X_train), torch.tensor(y_train)),
@@ -412,16 +369,13 @@ def main():
 
     model = train_model(model, train_loader, val_loader, device)
 
-    # Evaluate
     print("[4/6] Evaluating...")
     results, y_prob, y_pred = evaluate(model, X_test, y_test, device)
 
-    # Extract attention weights
     print("[5/6] Extracting attention weights...")
     attn_weights = extract_attention_weights(model, X_test, device)
     print(f"  Attention weights shape: {attn_weights.shape}")
 
-    # Load protein info for analysis
     info_df = pd.read_csv(PROTEIN_INFO_PATH, sep="\t")
     info_df = info_df.rename(columns={"#string_protein_id": "protein_id"})
 
@@ -429,11 +383,9 @@ def main():
         attn_weights, y_test.astype(int), y_pred, y_prob, test_pairs, info_df
     )
 
-    # Plot
     print("[6/6] Generating plots and report...")
     plot_attention(category_means, PLOT_OUTPUT)
 
-    # Comparison table
     two_tower_results = {"f1": 0.805, "roc_auc": 0.896, "pr_auc": 0.902}
     comparison = f"""## Performance Comparison
 
@@ -466,7 +418,6 @@ Parameters: {param_count:,}
     REPORT_OUTPUT.write_text(report)
     print(f"  Report saved to {REPORT_OUTPUT}")
 
-    # Save model
     torch.save(model.state_dict(), MODEL_OUTPUT)
     print(f"  Model saved to {MODEL_OUTPUT}")
 

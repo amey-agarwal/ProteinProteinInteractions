@@ -1,10 +1,5 @@
-"""Run sequence_network mode with a memory-safe train cap, then assemble the
-final ablation_results.csv from all three saved curve files.
-
-The ablation script killed itself on the laptop during sequence_network training
-because the (209K, 3072) float32 matrix plus StandardScaler's copy exceeded RAM.
-This script caps the sequence_network train set at 150K rows and frees memory
-aggressively between phases.
+"""Sequence+network ablation with a 150K train cap to fit in memory.
+Assembles final ablation_results.csv from all three saved curve files.
 """
 import gc
 from pathlib import Path

@@ -1,19 +1,4 @@
-"""Systematic error analysis of the network-only MLP model.
-
-Trains the network-only model on the full dataset, predicts on the test set,
-and analyzes errors across multiple dimensions:
-  1. Overall confusion matrix and error counts
-  2. Error rate by prediction confidence bin
-  3. False positives vs false negatives breakdown
-  4. Most frequently misclassified proteins
-  5. Protein size (amino acid length) vs error rate
-  6. Embedding cosine similarity for correct vs incorrect predictions
-  7. Functional keyword enrichment in errors
-
-Outputs:
-  - data/processed/error_analysis.md   (summary report)
-  - data/processed/error_details.csv   (per-pair error details)
-"""
+"""Error analysis of the network-only MLP on the full dataset."""
 from pathlib import Path
 
 import numpy as np
@@ -38,7 +23,7 @@ PROTEIN_INFO_PATH = Path("data/raw/9606.protein.info.v12.0.txt")
 REPORT_OUTPUT = Path("data/processed/error_analysis.md")
 CSV_OUTPUT = Path("data/processed/error_details.csv")
 
-MAX_TRAIN_ROWS = None  # use full dataset
+MAX_TRAIN_ROWS = None
 MAX_TEST_ROWS = None
 
 
@@ -49,12 +34,10 @@ def load_protein_info() -> pd.DataFrame:
 
 
 def cosine_similarity_pairs(net_emb: dict, p1_ids: list, p2_ids: list) -> np.ndarray:
-    """Compute cosine similarity between embedding pairs."""
     sims = []
     for p1, p2 in zip(p1_ids, p2_ids):
         key1 = p1.replace("9606.", "") if p1.startswith("9606.") else p1
         key2 = p2.replace("9606.", "") if p2.startswith("9606.") else p2
-        # try both with and without prefix
         e1 = net_emb.get(p1) if p1 in net_emb else net_emb.get(key1)
         e2 = net_emb.get(p2) if p2 in net_emb else net_emb.get(key2)
         if e1 is not None and e2 is not None:
@@ -70,7 +53,6 @@ def cosine_similarity_pairs(net_emb: dict, p1_ids: list, p2_ids: list) -> np.nda
 
 
 def analyze_confidence_bins(y_true: np.ndarray, y_prob: np.ndarray) -> str:
-    """Error rate by prediction confidence bin."""
     bins = [(0.0, 0.1), (0.1, 0.2), (0.2, 0.3), (0.3, 0.4), (0.4, 0.5),
             (0.5, 0.6), (0.6, 0.7), (0.7, 0.8), (0.8, 0.9), (0.9, 1.001)]
     y_pred = (y_prob >= 0.5).astype(int)
@@ -91,7 +73,6 @@ def analyze_confidence_bins(y_true: np.ndarray, y_prob: np.ndarray) -> str:
 
 
 def analyze_frequent_errors(test_df: pd.DataFrame, id_to_name: dict) -> str:
-    """Proteins that appear most often in misclassified pairs."""
     errors = test_df[~test_df["correct"]]
     protein_counts: dict[str, int] = {}
     for _, row in errors.iterrows():
@@ -110,7 +91,6 @@ def analyze_frequent_errors(test_df: pd.DataFrame, id_to_name: dict) -> str:
 
 
 def analyze_protein_size(test_df: pd.DataFrame, id_to_size: dict) -> str:
-    """Error rate by protein size bins."""
     sizes = []
     for _, row in test_df.iterrows():
         s1 = id_to_size.get(row["protein1"], np.nan)
@@ -136,7 +116,6 @@ def analyze_protein_size(test_df: pd.DataFrame, id_to_size: dict) -> str:
 
 
 def analyze_cosine_similarity(test_df: pd.DataFrame) -> str:
-    """Compare cosine similarity distributions for correct vs incorrect."""
     correct = test_df[test_df["correct"]]
     incorrect = test_df[~test_df["correct"]]
 
@@ -158,7 +137,6 @@ def analyze_cosine_similarity(test_df: pd.DataFrame) -> str:
 
 
 def analyze_keyword_enrichment(test_df: pd.DataFrame, id_to_anno: dict) -> str:
-    """Find functional keywords enriched in errors vs correct predictions."""
     keywords = ["ribosom", "kinase", "receptor", "transcription", "histone",
                 "ubiquitin", "proteasome", "chaperone", "channel", "transport",
                 "mitochond", "nuclear", "membrane", "signaling", "enzyme",
@@ -196,7 +174,6 @@ def main():
     print("Error Analysis — Network-Only MLP")
     print("=" * 65)
 
-    # load data
     print("\n[1/6] Loading data and embeddings...")
     df = pd.read_csv(DATASET_PATH)
     net_emb = load_embeddings(NETWORK_EMBEDDINGS_PATH)
@@ -209,7 +186,6 @@ def main():
     id_to_anno = dict(zip(info["protein_id"], info["annotation"]))
     id_to_size = dict(zip(info["protein_id"], info["protein_size"]))
 
-    # split and build features
     print("[2/6] Splitting data and building features...")
     train_df, test_df = protein_wise_split(df, TEST_PROTEIN_FRACTION, RANDOM_SEED)
     train_df = sample_dataframe(train_df, MAX_TRAIN_ROWS, RANDOM_SEED)
@@ -220,14 +196,12 @@ def main():
 
     print(f"   Train: {len(y_train):,} rows | Test: {len(y_test):,} rows")
 
-    # train and predict
     print("[3/6] Training model...")
     model = train_model(X_train, y_train)
 
     y_prob = model.predict_proba(X_test)[:, 1]
     y_pred = (y_prob >= 0.5).astype(int)
 
-    # build analysis dataframe
     test_df = test_df.reset_index(drop=True).iloc[:len(y_test)].copy()
     test_df["y_true"] = y_test
     test_df["y_prob"] = y_prob
@@ -237,13 +211,11 @@ def main():
     test_df.loc[(test_df["y_true"] == 1) & (test_df["y_pred"] == 0), "error_type"] = "false_negative"
     test_df.loc[(test_df["y_true"] == 0) & (test_df["y_pred"] == 1), "error_type"] = "false_positive"
 
-    # cosine similarity
     print("[4/6] Computing embedding cosine similarities...")
     test_df["cosine_sim"] = cosine_similarity_pairs(
         net_emb, test_df["protein1"].tolist(), test_df["protein2"].tolist()
     )
 
-    # overall metrics
     cm = confusion_matrix(y_test, y_pred)
     tn, fp, fn, tp = cm.ravel()
     total_errors = fp + fn
@@ -259,7 +231,6 @@ def main():
     cosine_table = analyze_cosine_similarity(test_df)
     keyword_table = analyze_keyword_enrichment(test_df, id_to_anno)
 
-    # top false positives (non-interacting predicted as interacting, highest confidence)
     fp_df = test_df[test_df["error_type"] == "false_positive"].sort_values("y_prob", ascending=False).head(10)
     fp_lines = ["| Protein A | Protein B | Pred Prob | Cosine Sim |",
                 "|---|---|---|---|"]
@@ -269,7 +240,6 @@ def main():
         fp_lines.append(f"| {a} | {b} | {row['y_prob']:.3f} | {row['cosine_sim']:.4f} |")
     fp_table = "\n".join(fp_lines)
 
-    # top false negatives (interacting predicted as non-interacting, lowest probability)
     fn_df = test_df[test_df["error_type"] == "false_negative"].sort_values("y_prob", ascending=True).head(10)
     fn_lines = ["| Protein A | Protein B | Pred Prob | Cosine Sim |",
                 "|---|---|---|---|"]
@@ -279,7 +249,6 @@ def main():
         fn_lines.append(f"| {a} | {b} | {row['y_prob']:.3f} | {row['cosine_sim']:.4f} |")
     fn_table = "\n".join(fn_lines)
 
-    # build report
     print("[6/6] Writing report...")
 
     report_md = f"""# Error Analysis — Network-Only MLP
@@ -354,7 +323,6 @@ errors; < 1.0 means it appears less.
     REPORT_OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     REPORT_OUTPUT.write_text(report_md)
 
-    # save per-pair details
     out_cols = ["protein1", "protein2", "y_true", "y_prob", "y_pred", "correct",
                 "error_type", "cosine_sim"]
     test_df[out_cols].to_csv(CSV_OUTPUT, index=False)
