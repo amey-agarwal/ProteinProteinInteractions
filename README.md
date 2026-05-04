@@ -46,3 +46,5 @@ export PYTHONPATH="src:$PYTHONPATH"
 | 10. XAI report | `python src/xai_ppi_analysis.py` | `data/processed/xai_report.html` |
 
 Steps 1-5 must run in order. Steps 6-10 are independent.
+
+See `PPI_Pipeline-5248585.out` for the final pipeline results.
