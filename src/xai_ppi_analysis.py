@@ -40,7 +40,7 @@ from sklearn.preprocessing import StandardScaler
 
 warnings.filterwarnings("ignore")
 
-# ── paths ──────────────────────────────────────────────────────────────────
+# paths
 DATASET_PATH          = Path("data/processed/ppi_dataset_hard.csv")
 SEQUENCE_EMB_PATH     = Path("data/embeddings/9606.protein.sequence.embeddings.v12.0.h5")
 NETWORK_EMB_PATH      = Path("data/embeddings/9606.protein.network.embeddings.v12.0.h5")
@@ -48,6 +48,7 @@ PROTEIN_INFO_PATH     = Path("data/raw/9606.protein.info.v12.0.txt")
 MODEL_PATH            = Path("models/network_embedding_mlp.joblib")
 REPORT_OUTPUT         = Path("data/processed/xai_report.html")
 
+"""hyperparameters"""
 RANDOM_SEED           = 42
 TEST_PROTEIN_FRACTION = 0.2
 MAX_TRAIN_ROWS        = 50_000
@@ -60,23 +61,21 @@ EVIDENCE_FEATURES = [
     "coexpression", "experimental", "database", "textmining",
 ]
 
-
-# ══════════════════════════════════════════════════════════════════════════════
-# 1.  DATA HELPERS
-# ══════════════════════════════════════════════════════════════════════════════
-
+# data preparing 
 def load_embeddings(path: Path) -> dict[str, np.ndarray]:
-    print(f"  Loading embeddings: {path.name}")
+    """The embeddings are loaded from h5 file"""
     with h5py.File(path, "r") as f:
         proteins = [
             p.decode() if isinstance(p, bytes) else str(p)
             for p in f["proteins"][:]
         ]
         embeddings = f["embeddings"][:].astype(np.float32)
+    print("Embeddings loaded")
     return dict(zip(proteins, embeddings))
 
 
 def load_protein_info(path: Path) -> pd.DataFrame:
+    """Read the protein information csv file"""
     if not path.exists():
         print(f"  [warn] protein info not found: {path}")
         return pd.DataFrame(columns=["protein_external_id", "preferred_name", "annotation"])
@@ -85,6 +84,7 @@ def load_protein_info(path: Path) -> pd.DataFrame:
 
 
 def protein_wise_split(df, test_fraction=0.2, random_seed=42):
+    """creating testing dataset from the data"""
     rng = np.random.default_rng(random_seed)
     proteins = np.array(pd.unique(df[["protein1", "protein2"]].values.ravel("K")))
     rng.shuffle(proteins)
@@ -99,14 +99,14 @@ def protein_wise_split(df, test_fraction=0.2, random_seed=42):
 
 
 def sample_df(df, n, seed=RANDOM_SEED):
+    """sample data from the csv file"""
     return df.sample(n=min(n, len(df)), random_state=seed).reset_index(drop=True)
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# 2.  FEATURE BUILDERS
-# ══════════════════════════════════════════════════════════════════════════════
+# building the data
 
 def build_network_features(df, net_emb):
+    """X :  [ (emb1 - emb2), (emb1 * emb2) ] ; y : can be 0 or 1"""
     X, y, pairs, skipped = [], [], [], 0
     for _, row in df.iterrows():
         p1, p2 = row["protein1"], row["protein2"]
@@ -122,6 +122,7 @@ def build_network_features(df, net_emb):
 
 
 def build_sequence_features(df, seq_emb):
+    """X : [ (emb1 - emb2), (emb1 * emb2)] ; y: can be 0 or 1"""
     X, y, skipped = [], [], 0
     for _, row in df.iterrows():
         p1, p2 = row["protein1"], row["protein2"]
@@ -136,6 +137,7 @@ def build_sequence_features(df, seq_emb):
 
 
 def build_combined_features(df, seq_emb, net_emb):
+    """X : [ seq{(emb1 - emb2),(emb1*emb2)} , net{(emb1 - emb2),(emb1*emb2)} ] ; y: can be 0 or 1"""
     X, y, skipped = [], [], 0
     for _, row in df.iterrows():
         p1, p2 = row["protein1"], row["protein2"]
@@ -153,15 +155,15 @@ def build_combined_features(df, seq_emb, net_emb):
 
 
 def build_evidence_features(df):
+    """using the evidence features (X) and labels (y)"""
     sub = df.dropna(subset=EVIDENCE_FEATURES)
     return sub[EVIDENCE_FEATURES].to_numpy(dtype=np.float32), sub["label"].to_numpy()
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# 3.  TRAIN / EVAL HELPER
-# ══════════════════════════════════════════════════════════════════════════════
+# model
 
 def make_mlp(seed=RANDOM_SEED):
+    """input --> 128 --> 64 --> 1"""
     return Pipeline([
         ("scaler", StandardScaler()),
         ("clf", MLPClassifier(
@@ -175,6 +177,7 @@ def make_mlp(seed=RANDOM_SEED):
 
 
 def eval_model(model, X_test, y_test, name=""):
+    """evaluating the model"""
     y_pred = model.predict(X_test)
     y_prob = model.predict_proba(X_test)[:, 1]
     return {
@@ -187,9 +190,7 @@ def eval_model(model, X_test, y_test, name=""):
     }
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# 4.  SHAP ANALYSIS
-# ══════════════════════════════════════════════════════════════════════════════
+# SHAP
 
 def run_shap_analysis(model: Pipeline, X_train: np.ndarray, X_explain: np.ndarray,
                       embedding_dim: int) -> dict:
@@ -212,7 +213,7 @@ def run_shap_analysis(model: Pipeline, X_train: np.ndarray, X_explain: np.ndarra
 
     predict_fn = lambda x: clf.predict_proba(x)
 
-    print(f"  Running KernelSHAP on {len(X_explain_s)} samples …")
+    print(f"KernelSHAP on {len(X_explain_s)} samples")
     explainer   = shap.KernelExplainer(predict_fn, X_train_s, link="identity")
     shap_values = explainer.shap_values(X_explain_s, nsamples=100, silent=True)
 
@@ -237,9 +238,7 @@ def run_shap_analysis(model: Pipeline, X_train: np.ndarray, X_explain: np.ndarra
     }
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# 5.  EMBEDDING GEOMETRY ANALYSIS
-# ══════════════════════════════════════════════════════════════════════════════
+# understand the embeddings
 
 def embedding_geometry_analysis(net_emb: dict, seq_emb: dict,
                                 test_df: pd.DataFrame) -> dict:
@@ -281,9 +280,7 @@ def embedding_geometry_analysis(net_emb: dict, seq_emb: dict,
     return results
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# 6.  NEIGHBOURHOOD OVERLAP (biological transitivity)
-# ══════════════════════════════════════════════════════════════════════════════
+# kNN neigbourhood
 
 def neighbourhood_overlap_analysis(net_emb: dict, test_df: pd.DataFrame,
                                    k: int = 10) -> dict:
@@ -323,11 +320,10 @@ def neighbourhood_overlap_analysis(net_emb: dict, test_df: pd.DataFrame,
     }
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# 7.  PCA VARIANCE EXPLAINED
-# ══════════════════════════════════════════════════════════════════════════════
+# PCA
 
 def pca_analysis(net_emb: dict, seq_emb: dict, n_components: int = 20) -> dict:
+    """PCA on the embeddings data"""
     proteins_common = list(set(net_emb) & set(seq_emb))[:3000]
     net_mat = np.vstack([net_emb[p] for p in proteins_common])
     seq_mat = np.vstack([seq_emb[p] for p in proteins_common])
@@ -343,12 +339,11 @@ def pca_analysis(net_emb: dict, seq_emb: dict, n_components: int = 20) -> dict:
     }
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# 8.  PROTOTYPE PAIRS  (high-confidence predictions)
-# ══════════════════════════════════════════════════════════════════════════════
+# high confidence predictions
 
 def find_prototype_pairs(model, X_test, y_test, pairs,
                          protein_info: pd.DataFrame, n: int = 5) -> dict:
+    """finding the best interaction and poo interaction protein pairs"""
     y_prob = model.predict_proba(X_test)[:, 1]
 
     info_map = {}
@@ -380,9 +375,7 @@ def find_prototype_pairs(model, X_test, y_test, pairs,
     return prototypes
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# 9.  DIMENSION-GROUP ABLATION  (abs-diff vs elem-product)
-# ══════════════════════════════════════════════════════════════════════════════
+# componenet ablation
 
 def component_ablation(train_df, test_df, net_emb, embedding_dim) -> dict:
     """Remove abs-diff or elem-product from features and measure performance drop."""
@@ -421,9 +414,7 @@ def component_ablation(train_df, test_df, net_emb, embedding_dim) -> dict:
     return results
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# 10.  HTML REPORT GENERATOR
-# ══════════════════════════════════════════════════════════════════════════════
+# beter visualising results - HTML
 
 def generate_html_report(
     ablation_results: list[dict],
@@ -596,19 +587,6 @@ def generate_html_report(
 </header>
 <main>
 
-<!-- ══ SECTION 0 – KEY QUESTIONS ══ -->
-<div class="card">
-  <h2>0 · Questions This Report Answers</h2>
-  <ul class="bio-list">
-    <li><span class="bio-num">Q1</span>
-      <span>Why do <b>network embeddings</b> outperform sequence embeddings for PPI prediction?</span></li>
-    <li><span class="bio-num">Q2</span>
-      <span>What has the model learned about <b>protein chemistry and biology</b>?</span></li>
-    <li><span class="bio-num">Q3</span>
-      <span>What additional <b>biological questions</b> can be answered with this framework?</span></li>
-  </ul>
-</div>
-
 <!-- ══ SECTION 1 – ABLATION ══ -->
 <div class="card">
   <h2>1 · Model Ablation Results</h2>
@@ -639,15 +617,6 @@ def generate_html_report(
     {geo_rows}
   </table>
 
-  <h3>Why network embeddings cluster interactors</h3>
-  <p>Network embeddings (e.g. STRING's DeepWalk / node2vec-style vectors) encode
-  <b>topological proximity</b> in the known PPI graph. Proteins that share many
-  interaction partners end up in nearby regions of the embedding space — which is
-  exactly the signal a classifier needs. Sequence embeddings, by contrast, capture
-  <b>evolutionary / structural similarity</b>; two proteins can be structurally
-  unrelated yet functionally coupled (e.g. scaffold proteins binding diverse partners),
-  so their sequence vectors will appear far apart even though they interact.</p>
-
   <h3>Neighbourhood overlap (k={nb.get('k',10)} nearest neighbours)</h3>
   <div class="grid2">
     <div class="kpi-box">
@@ -676,19 +645,6 @@ def generate_html_report(
     <tr><th>Feature Component</th><th>F1</th><th>ROC-AUC</th><th>PR-AUC</th></tr>
     {comp_rows}
   </table>
-
-  <h3>Biological interpretation</h3>
-  <ul class="bio-list">
-    <li><span class="bio-num">∥</span>
-      <span><b>|e₁ − e₂| dominates →</b> the model distinguishes interactors by
-      how <em>different</em> their network positions are. This encodes
-      <b>complementarity</b>: e.g. a kinase and its substrate occupy distinct
-      network niches yet interact.</span></li>
-    <li><span class="bio-num">⊙</span>
-      <span><b>e₁ ⊙ e₂ contributes →</b> shared embedding directions reflect
-      <b>co-complex membership</b> (same protein complex → same neighbours →
-      similar embedding dimensions are large simultaneously).</span></li>
-  </ul>
 </div>
 
 <!-- ══ SECTION 4 – PROTOTYPE PAIRS ══ -->
@@ -723,81 +679,6 @@ def generate_html_report(
   space — easier for downstream classifiers.</p>
   <canvas id="pcaChart" height="90"></canvas>
 </div>
-
-<!-- ══ SECTION 7 – BIOLOGY Q&A ══ -->
-<div class="card">
-  <h2>7 · What the Model Learned About Protein Biology <span class="tag">answers Q2 + Q3</span></h2>
-
-  <h3>Chemistry & biology encoded in network embeddings</h3>
-  <ul class="bio-list">
-    <li><span class="bio-num">1</span>
-      <span><b>Functional modules / pathways:</b> STRING edge weights aggregate
-      co-expression, co-localisation, and experimental evidence. Node2vec-style
-      walks therefore encode pathway membership; proteins in the same KEGG pathway
-      cluster together.</span></li>
-    <li><span class="bio-num">2</span>
-      <span><b>Protein complexes:</b> Dense cliques in the interaction graph
-      become tight clusters in embedding space. The model implicitly learns
-      complex membership without being told the complex identities.</span></li>
-    <li><span class="bio-num">3</span>
-      <span><b>Hub vs peripheral proteins:</b> High-degree hubs (e.g. TP53, EGFR)
-      have diffuse embeddings covering many dimensions; peripheral proteins have
-      sparse, specialised vectors. The classifier learns to use this degree-encoded
-      signature.</span></li>
-    <li><span class="bio-num">4</span>
-      <span><b>Evolutionary conservation:</b> Orthologs tend to occupy similar
-      embedding positions because their interaction partners are conserved across
-      species — the model picks up cross-species conserved interaction logic.</span></li>
-  </ul>
-
-  <h3>Additional biological questions answerable with this framework</h3>
-  <ul class="bio-list">
-    <li><span class="bio-num">→</span>
-      <span><b>Novel interaction discovery:</b> Score all unobserved pairs with the
-      trained model; top-ranking pairs are candidate novel PPIs for experimental
-      validation (yeast two-hybrid, co-IP).</span></li>
-    <li><span class="bio-num">→</span>
-      <span><b>Drug target identification:</b> Proteins whose embedding neighbourhood
-      is perturbed by a disease mutation (e.g. cancer driver) and yet are predicted
-      to interact with known drug targets are prioritised candidates.</span></li>
-    <li><span class="bio-num">→</span>
-      <span><b>Pathway rewiring in disease:</b> Compare embedding cosine-similarity
-      distributions for the same protein pairs across a healthy vs disease STRING
-      network to identify rewired modules.</span></li>
-    <li><span class="bio-num">→</span>
-      <span><b>Protein function annotation:</b> Use kNN in embedding space to
-      transfer GO-term annotations from characterised to uncharacterised proteins
-      (<em>function-by-neighbourhood</em>).</span></li>
-    <li><span class="bio-num">→</span>
-      <span><b>Tissue-specific interactomes:</b> Retrain with tissue-specific
-      co-expression data (GTEx) as STRING channel; use SHAP to find which
-      tissue contexts drive interaction probability.</span></li>
-    <li><span class="bio-num">→</span>
-      <span><b>Cross-species interaction transfer:</b> Map human network embeddings
-      to model-organism embeddings via alignment; predict conserved interactions
-      in poorly-studied organisms.</span></li>
-    <li><span class="bio-num">→</span>
-      <span><b>PPI-disrupting variant prioritisation:</b> Encode wild-type and
-      mutant sequence, compute how much the mutant's embedding shifts, feed into
-      the interaction model to flag variants that likely disrupt key interactions.</span></li>
-  </ul>
-
-  <h3>Limitations & caveats</h3>
-  <ul class="bio-list">
-    <li><span class="bio-num">!</span>
-      <span>Network embeddings are <b>circular</b>: STRING's combined_score is itself
-      derived from computational predictions. High accuracy may partly reflect
-      learning the STRING scoring function rather than true biology.</span></li>
-    <li><span class="bio-num">!</span>
-      <span>Negative sampling is uncertain: medium-confidence pairs used as negatives
-      may contain real interactions not yet characterised.</span></li>
-    <li><span class="bio-num">!</span>
-      <span>Protein-wise split is the correct evaluation but the held-out proteins
-      still share functional categories with training proteins — true zero-shot
-      generalisation to entirely new protein families is likely worse.</span></li>
-  </ul>
-</div>
-
 </main>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
@@ -839,57 +720,43 @@ new Chart(document.getElementById('pcaChart'),{{
 
     return html
 
-
-# ══════════════════════════════════════════════════════════════════════════════
-# 11.  MAIN
-# ══════════════════════════════════════════════════════════════════════════════
-
 def main():
-    print("=" * 65)
-    print("PPI · Explainable AI Analysis")
-    print("=" * 65)
-
-    # ── load data ──────────────────────────────────────────────────
-    print("\n[1/9] Loading data …")
+    # load data
     df           = pd.read_csv(DATASET_PATH)
     net_emb      = load_embeddings(NETWORK_EMB_PATH)
     seq_emb      = load_embeddings(SEQUENCE_EMB_PATH)
     protein_info = load_protein_info(PROTEIN_INFO_PATH)
 
-    # ── split ──────────────────────────────────────────────────────
-    print("\n[2/9] Protein-wise split …")
     train_df, test_df = protein_wise_split(df, TEST_PROTEIN_FRACTION, RANDOM_SEED)
     train_df = sample_df(train_df, MAX_TRAIN_ROWS)
     test_df  = sample_df(test_df,  MAX_TEST_ROWS)
     print(f"  train={len(train_df):,}  test={len(test_df):,}")
 
-    # ── ablation: train all four feature sets ──────────────────────
-    print("\n[3/9] Ablation experiments …")
     ablation_results = []
 
     # network
-    print("  → network embeddings")
+    print("network embeddings")
     X_tr_net, y_tr, pairs_tr = build_network_features(train_df, net_emb)
     X_te_net, y_te, pairs_te = build_network_features(test_df,  net_emb)
     m_net = make_mlp(); m_net.fit(X_tr_net, y_tr)
     ablation_results.append(eval_model(m_net, X_te_net, y_te, "network"))
 
     # sequence
-    print("  → sequence embeddings")
+    print("sequence embeddings")
     X_tr_seq, y_tr_s = build_sequence_features(train_df, seq_emb)
     X_te_seq, y_te_s = build_sequence_features(test_df,  seq_emb)
     m_seq = make_mlp(); m_seq.fit(X_tr_seq, y_tr_s)
     ablation_results.append(eval_model(m_seq, X_te_seq, y_te_s, "sequence"))
 
     # combined
-    print("  → sequence + network (combined)")
+    print("sequence + network (combined)")
     X_tr_c, y_tr_c = build_combined_features(train_df, seq_emb, net_emb)
     X_te_c, y_te_c = build_combined_features(test_df,  seq_emb, net_emb)
     m_comb = make_mlp(); m_comb.fit(X_tr_c, y_tr_c)
     ablation_results.append(eval_model(m_comb, X_te_c, y_te_c, "sequence+network"))
 
     # STRING evidence scores
-    print("  → STRING evidence features only")
+    print("STRING evidence features only")
     X_tr_ev, y_tr_ev = build_evidence_features(train_df)
     X_te_ev, y_te_ev = build_evidence_features(test_df)
     m_ev = make_mlp(); m_ev.fit(X_tr_ev, y_tr_ev)
@@ -898,49 +765,43 @@ def main():
     for r in ablation_results:
         print(f"    [{r['name']:22s}] F1={r['f1']:.4f}  ROC-AUC={r['roc_auc']:.4f}")
 
-    # ── embedding geometry ─────────────────────────────────────────
-    print("\n[4/9] Embedding geometry analysis …")
+    # embedding geometry
+    print("\nembedding geometry")
     geometry = embedding_geometry_analysis(net_emb, seq_emb, test_df)
 
-    # ── neighbourhood overlap ──────────────────────────────────────
-    print("\n[5/9] Neighbourhood overlap analysis …")
+    print("\nkNN Neighbourhood overlap")
     neighbourhood = neighbourhood_overlap_analysis(net_emb, test_df)
     print(f"  pos overlap={neighbourhood['pos_mean_overlap']:.4f}  "
           f"neg overlap={neighbourhood['neg_mean_overlap']:.4f}")
 
-    # ── PCA ────────────────────────────────────────────────────────
-    print("\n[6/9] PCA dimensionality analysis …")
+    print("\n[PCA dimensionality")
     pca_res = pca_analysis(net_emb, seq_emb)
     print(f"  network cumvar@20={pca_res['net_cumvar_20']*100:.1f}%  "
           f"sequence cumvar@20={pca_res['seq_cumvar_20']*100:.1f}%")
 
-    # ── prototype pairs ────────────────────────────────────────────
-    print("\n[7/9] Prototype pairs …")
+    print("\nPrototype pairs")
     prototypes = find_prototype_pairs(m_net, X_te_net, y_te, pairs_te, protein_info)
 
-    # ── component ablation ─────────────────────────────────────────
     embedding_dim = next(iter(net_emb.values())).shape[0]
-    print(f"\n[8/9] Component ablation (embedding dim={embedding_dim}) …")
+    print(f"\nComponent ablation (embedding dim={embedding_dim}) …")
     comp_abl = component_ablation(
         sample_df(train_df, 20_000),
         sample_df(test_df,  5_000),
         net_emb, embedding_dim,
     )
 
-    # ── SHAP ───────────────────────────────────────────────────────
-    print("\n[9/9] SHAP analysis …")
+    print("\nSHAP")
     shap_res = run_shap_analysis(m_net, X_tr_net, X_te_net, embedding_dim)
 
     # ── report ─────────────────────────────────────────────────────
-    print("\nGenerating HTML report …")
+    print("\nGenerating HTML report")
     html = generate_html_report(
         ablation_results, geometry, neighbourhood,
         pca_res, prototypes, comp_abl, shap_res,
     )
     REPORT_OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     REPORT_OUTPUT.write_text(html, encoding="utf-8")
-    print(f"\n✓  Report saved to: {REPORT_OUTPUT}")
-    print("   Open in any browser for full interactive analysis.")
+    print(f"\nReport saved to: {REPORT_OUTPUT}")
 
 
 if __name__ == "__main__":
