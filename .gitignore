@@ -5,11 +5,4 @@
 pyvenv/
 .venv/
 __pycache__/
-*.pyc
-*.out
-*.err
-models/
-data/raw/
-data/embeddings/
-data/processed/ppi_dataset_hard.csv
-data/processed/curves/
+
