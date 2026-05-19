@@ -343,7 +343,7 @@ def pca_analysis(net_emb: dict, seq_emb: dict, n_components: int = 20) -> dict:
 
 def find_prototype_pairs(model, X_test, y_test, pairs,
                          protein_info: pd.DataFrame, n: int = 5) -> dict:
-    """finding the best interaction and poo interaction protein pairs"""
+    """finding the best interaction and poor interaction protein pairs"""
     y_prob = model.predict_proba(X_test)[:, 1]
 
     info_map = {}
